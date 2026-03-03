@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drishti Flanges & Metal - Final Attendance</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding-bottom: 80px; background: #f0f2f5; }
+        .header { background: #2c3e50; color: white; padding: 15px; text-align: center; font-weight: bold; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
+        .refresh-icon { cursor: pointer; font-size: 20px; }
+        .content { padding: 15px; }
+        .card { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+        h3 { margin-top: 0; font-size: 18px; color: #34495e; border-bottom: 2px solid #3498db; padding-bottom: 5px; }
+        label { display: block; margin-top: 10px; font-weight: bold; font-size: 13px; }
+        input, select, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
+        .btn-save { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-del { background: #e74c3c; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 10px; width: auto; }
+        
+        .leave-row { display: flex; align-items: center; gap: 10px; background: #fff3cd; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba; }
+        .leave-row input { width: 20px; height: 20px; margin: 0; }
+        
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        .nav-item { flex: 1; text-align: center; padding: 10px 0; font-size: 11px; cursor: pointer; color: #7f8c8d; }
+        .nav-item.active { color: #3498db; font-weight: bold; }
+        .nav-item span { display: block; font-size: 18px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; table-layout: fixed; }
+        th, td { border: 1px solid #999; padding: 6px; text-align: center; word-wrap: break-word; }
+        th { background: #3498db; color: white; }
+        .total-row { background: #ecf0f1; font-weight: bold; }
+        .tab-content { display: none; }
+        .active-tab { display: block; }
+
+        @media print {
+            .bottom-nav, .header, .btn-del, .print-hide, .btn-save, .refresh-icon { display: none !important; }
+            body { background: white; padding: 0; }
+            .report-block { page-break-after: always; border: 1px solid #eee; padding: 10px; margin-bottom: 20px; }
+            .summary-page { page-break-after: always; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div style="width: 40px;"></div>
+    <span>Drishti Flanges & Metal</span>
+    <div class="refresh-icon" onclick="location.reload()">🔄</div>
+</div>
+
+<div class="content">
+    <div id="entry" class="tab-content active-tab">
+        <div class="card">
+            <h3>📝 રોજિંદી એન્ટ્રી</h3>
+            <label>તારીખ:</label> <input type="date" id="dailyDate">
+            <label>નામ પસંદ કરો:</label> <select id="dailyName" class="name-list"></select>
+            <div class="leave-row">
+                <input type="checkbox" id="isLeave" onchange="toggleTimeInputs('daily')">
+                <label for="isLeave">રજા છે?</label>
+                <select id="leaveType" style="display:none; width:auto; padding:5px;">
+                    <option value="Personal">Personal Leave</option>
+                    <option value="Public">Public Holiday</option>
+                </select>
+            </div>
+            <div id="dailyTimeBox">
+                <label>In:</label> <input type="time" id="dailyIn" value="08:00">
+                <label>Out:</label> <input type="time" id="dailyOut" value="19:30">
+            </div>
+            <label>વિગત:</label> <input type="text" id="dailyRemark" placeholder="નોંધ...">
+            <button class="btn-save" onclick="saveDaily()">સેવ કરો</button>
+        </div>
+    </div>
+
+    <div id="bulk" class="tab-content">
+        <div class="card">
+            <h3>📅 બલ્ક એન્ટ્રી</h3>
+            <label>નામ પસંદ કરો:</label> <select id="bulkName" class="name-list"></select>
+            <label>તારીખ થી:</label> <input type="date" id="bulkFrom">
+            <label>તારીખ સુધી:</label> <input type="date" id="bulkTo">
+            <div class="leave-row">
+                <input type="checkbox" id="isBulkLeave" onchange="toggleTimeInputs('bulk')">
+                <label for="isBulkLeave">રજા છે? (Personal Leave)</label>
+            </div>
+            <div id="bulkTimeBox">
+                <label>In:</label> <input type="time" id="bulkIn" value="08:00">
+                <label>Out:</label> <input type="time" id="bulkOut" value="19:30">
+            </div>
+            <button class="btn-save" style="background:#e67e22" onclick="saveBulk()">બલ્ક સેવ કરો</button>
+        </div>
+    </div>
+
+    <div id="report" class="tab-content">
+        <div class="card">
+            <div class="print-hide">
+                <h3>📊 રિપોર્ટ જનરેટ કરો</h3>
+                <select id="reportName" class="name-list" onchange="showReport()"></select>
+                <div style="display: flex; gap: 10px;">
+                    <div style="flex: 1;"><label>થી:</label><input type="date" id="reportFrom" onchange="showReport()"></div>
+                    <div style="flex: 1;"><label>સુધી:</label><input type="date" id="reportTo" onchange="showReport()"></div>
+                </div>
+                <button onclick="window.print()" style="margin-top:15px; background:#34495e; color:white; font-weight:bold;">રિપોર્ટ પ્રિન્ટ / PDF</button>
+            </div>
+            <div id="summaryContainer"></div> 
+            <div id="reportContainer"></div>  
+        </div>
+    </div>
+
+    <div id="setting" class="tab-content">
+        <div class="card">
+            <h3>⚙️ સેટિંગ</h3>
+            <input type="text" id="newNameInput" placeholder="નવું નામ...">
+            <button class="btn-save" onclick="addPerson()">માણસ એડ કરો</button>
+        </div>
+        <div id="pListDisplay" class="card"></div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('entry', this)"><span>📝</span>એન્ટ્રી</div>
+    <div class="nav-item" onclick="showTab('bulk', this)"><span>📅</span>બલ્ક</div>
+    <div class="nav-item" onclick="showTab('report', this)"><span>📊</span>રિપોર્ટ</div>
+    <div class="nav-item" onclick="showTab('setting', this)"><span>⚙️</span>સેટિંગ</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAuBd2AioQmGZQ_-ZGtkJ6ZHIYh0GqR4E0",
+        authDomain: "attendance-96700.firebaseapp.com",
+        databaseURL: "https://attendance-96700-default-rtdb.firebaseio.com",
+        projectId: "attendance-96700",
+        storageBucket: "attendance-96700.firebasestorage.app",
+        messagingSenderId: "945000495965",
+        appId: "1:945000495965:web:6f4297ce9005b9681846b4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let persons = [];
+    let attendance = [];
+
+    onValue(ref(db, 'persons'), (snap) => {
+        const d = snap.val();
+        persons = d ? Object.entries(d).map(([key, name]) => ({key, name})) : [];
+        updateLists();
+    });
+
+    onValue(ref(db, 'attendance'), (snap) => {
+        const d = snap.val();
+        attendance = d ? Object.values(d) : [];
+    });
+
+    window.toggleTimeInputs = (type) => {
+        const isL = type === 'daily' ? document.getElementById('isLeave').checked : document.getElementById('isBulkLeave').checked;
+        if(type === 'daily') {
+            document.getElementById('dailyTimeBox').style.display = 'block'; 
+            document.getElementById('leaveType').style.display = isL ? 'inline-block' : 'none';
+        }
+    };
+
+    window.saveDaily = () => {
+        const date = document.getElementById('dailyDate').value;
+        const name = document.getElementById('dailyName').value;
+        const isL = document.getElementById('isLeave').checked;
+        const lType = isL ? document.getElementById('leaveType').value : "";
+        const rem = document.getElementById('dailyRemark').value.trim();
+        
+        if(!name || !date) return alert("વિગત ભરો!");
+        
+        let tin = document.getElementById('dailyIn').value;
+        let tout = document.getElementById('dailyOut').value;
+        let hrs = calcHours(tin, tout);
+        
+        let item = rem;
+        if(isL) {
+            item = rem ? (lType === "Public" ? "જાહેર રજા - " : "રજા - ") + rem : (lType === "Public" ? "જાહેર રજા" : "રજા");
+        } else if(new Date(date).getDay() === 0) {
+            item = rem || "રવિવાર";
+        }
+
+        const id = push(ref(db, 'attendance')).key;
+        set(ref(db, `attendance/${id}`), { id, name, date, tin, tout, item, hours: hrs, leaveType: lType }).then(() => {
+            alert("સેવ થયું!");
+            document.getElementById('isLeave').checked = false;
+            toggleTimeInputs('daily');
+        });
+    };
+
+    window.saveBulk = async () => {
+        const name = document.getElementById('bulkName').value;
+        const from = new Date(document.getElementById('bulkFrom').value);
+        const to = new Date(document.getElementById('bulkTo').value);
+        const isL = document.getElementById('isBulkLeave').checked;
+        if(!name || isNaN(from)) return alert("વિગત ભરો!");
+        
+        let tempDate = new Date(from);
+        while(tempDate <= to) {
+            let dStr = tempDate.toISOString().split('T')[0];
+            let tin = document.getElementById('bulkIn').value; 
+            let tout = document.getElementById('bulkOut').value; 
+            let hrs = calcHours(tin, tout);
+            let item = isL ? "રજા" : (tempDate.getDay() === 0 ? "રવિવાર" : "");
+            const id = push(ref(db, 'attendance')).key;
+            await set(ref(db, `attendance/${id}`), { id, name, date: dStr, tin, tout, item, hours: hrs, leaveType: isL ? "Personal" : "" });
+            tempDate.setDate(tempDate.getDate() + 1);
+        }
+        alert("બલ્ક એન્ટ્રી પૂરી થઈ!");
+    };
+
+    // --- REPORT LOGIC WITH PUBLIC HOLIDAY HOURS COUNT ---
+    window.showReport = () => {
+        const sel = document.getElementById('reportName').value;
+        const from = document.getElementById('reportFrom').value;
+        const to = document.getElementById('reportTo').value;
+        const summCont = document.getElementById('summaryContainer');
+        const reportCont = document.getElementById('reportContainer');
+        summCont.innerHTML = ""; reportCont.innerHTML = "";
+        if(!sel) return;
+
+        let names = (sel === "ALL") ? persons.map(p => p.name) : [sel];
+        let summaryData = [];
+        names.forEach(n => {
+            const data = attendance.filter(a => a.name === n && (!from || a.date >= from) && (!to || a.date <= to)).sort((a,b) => new Date(a.date) - new Date(b.date));
+            if(data.length > 0) {
+                let stats = calculateStats(data);
+                summaryData.push({ name: n, ...stats });
+                renderDetailTable(n, data, stats, from, to);
+            }
+        });
+        if (summaryData.length > 0) renderSummaryPage(summaryData);
+    };
+
+    function calculateStats(data) {
+        let hrs = 0, pLeave = 0, hDay = 0, wDay = 0;
+        data.forEach(a => {
+            if (a.leaveType === "Personal") {
+                pLeave++;
+            } else if (a.leaveType === "Public") {
+                hDay++;
+                hrs += parseFloat(a.hours || 0); // અહીં જાહેર રજાના કલાકો ટોટલમાં ઉમેર્યા છે
+            } else if (a.item?.includes("રવિવાર")) {
+                hDay++;
+                hrs += parseFloat(a.hours || 0); // રવિવારના કલાકો પણ ઉમેર્યા છે
+            } else {
+                wDay++; 
+                hrs += parseFloat(a.hours || 0);
+            }
+        });
+        return { hrs: hrs.toFixed(1), pLeave, hDay, wDay };
+    }
+
+    function renderSummaryPage(summaryData) {
+        let h = `<div class="summary-page report-block"><h2 style="text-align:center;">બધા ઓપરેટર સમરી</h2><table><thead><tr style="background:#34495e;"><th>નામ</th><th>કુલ કલાક</th><th>વર્કિંગ</th><th>રજા</th><th>જાહેર</th></tr></thead><tbody>`;
+        summaryData.forEach(s => {
+            h += `<tr><td style="text-align:left;"><b>${s.name}</b></td><td>${s.hrs}</td><td>${s.wDay}</td><td>${s.pLeave}</td><td>${s.hDay}</td></tr>`;
+        });
+        h += `</tbody></table></div>`;
+        document.getElementById('summaryContainer').innerHTML = h;
+    }
+
+    function renderDetailTable(name, data, stats, from, to) {
+        const dFrom = from ? from.split('-').reverse().join('/') : data[0].date.split('-').reverse().join('/');
+        const dTo = to ? to.split('-').reverse().join('/') : data[data.length-1].date.split('-').reverse().join('/');
+        let h = `
+        <div class="report-block">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #34495e; padding-bottom: 10px; margin-bottom: 10px;">
+                <div style="text-align: left;">
+                    <h2 style="margin: 0;">${name}</h2>
+                    <p style="margin: 5px 0; font-size:12px;">સમયગાળો: ${dFrom} થી ${dTo}</p>
+                </div>
+                <div style="width: 220px;">
+                    <table style="width: 100%; font-size: 11px; margin-top:0;">
+                        <tr style="background:#eee;"><th colspan="2">Summary</th></tr>
+                        <tr><td style="text-align:left;">Personal Leave:</td><td>${stats.pLeave}</td></tr>
+                        <tr><td style="text-align:left;">Public Holiday:</td><td>${stats.hDay}</td></tr>
+                        <tr style="font-weight:bold;"><td style="text-align:left;">Working Days:</td><td>${stats.wDay}</td></tr>
+                    </table>
+                </div>
+            </div>
+            <table>
+                <thead><tr><th>તારીખ</th><th>વિગત</th><th>In</th><th>Out</th><th>કલાક</th><th class="print-hide">X</th></tr></thead>
+                <tbody>`;
+        data.forEach(a => {
+            h += `<tr><td>${a.date.split('-').reverse().join('/')}</td><td>${a.item||''}</td><td>${a.tin}</td><td>${a.tout}</td><td>${a.hours}</td>
+            <td class="print-hide"><button class="btn-del" onclick="deleteEntry('${a.id}')">X</button></td></tr>`;
+        });
+        h += `<tr class="total-row"><td colspan="4" style="text-align:right;">કુલ કલાક (વર્કિંગ + જાહેર):</td><td>${stats.hrs}</td><td class="print-hide"></td></tr>
+        </tbody></table></div>`;
+        document.getElementById('reportContainer').innerHTML += h;
+    }
+
+    window.deleteEntry = (id) => { if(confirm("ડીલીટ કરવું છે?")) remove(ref(db, `attendance/${id}`)); };
+    window.updateLists = () => {
+        const lists = document.querySelectorAll('.name-list');
+        const pDisp = document.getElementById('pListDisplay');
+        pDisp.innerHTML = "<h4>કર્મચારી લિસ્ટ:</h4>";
+        lists.forEach(l => {
+            let opt = "<option value=''>નામ પસંદ કરો</option>";
+            if(l.id === "reportName") opt += "<option value='ALL'>-- બધા ઓપરેટર --</option>";
+            persons.forEach(p => opt += `<option value="${p.name}">${p.name}</option>`);
+            l.innerHTML = opt;
+        });
+        persons.forEach(p => pDisp.innerHTML += `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;"><span>${p.name}</span><button class="btn-del" onclick="deletePerson('${p.key}')">X</button></div>`);
+    };
+    window.addPerson = () => {
+        const n = document.getElementById('newNameInput').value.trim();
+        if(n) push(ref(db, 'persons'), n);
+        document.getElementById('newNameInput').value = "";
+    };
+    window.deletePerson = (key) => { if(confirm("નામ કાઢવું છે?")) remove(ref(db, `persons/${key}`)); };
+    function calcHours(i, o) {
+        if(i === "--" || o === "--") return 0;
+        let [h1, m1] = i.split(':').map(Number); let [h2, m2] = o.split(':').map(Number);
+        let d = (h2*60+m2) - (h1*60+m1); if(d < 0) d += 1440; return (d/60).toFixed(1);
+    }
+    window.showTab = (id, el) => {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active-tab');
+        el.classList.add('active');
+    };
+</script>
+</body>
+</html>

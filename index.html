@@ -15,7 +15,7 @@
         label { display: block; margin-top: 10px; font-weight: bold; font-size: 13px; }
         input, select, button { width: 100%; padding: 12px; margin-top: 5px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; }
         .btn-save { background: #27ae60; color: white; border: none; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-del { background: #e74c3c; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 10px; width: auto; }
+        .btn-del { background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; width: auto; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; table-layout: fixed; }
         th, td { border: 1px solid #777; padding: 8px 4px; text-align: center; word-wrap: break-word; color: #000; }
         th { background: #34495e; color: white; font-weight: bold; }
@@ -23,7 +23,6 @@
         .tab-content { display: none; }
         .active-tab { display: block; }
         .report-block { page-break-before: always; padding: 20px 0; border-top: 1px solid #ccc; }
-        .summary-page { page-break-after: auto; margin-bottom: 20px; }
         .bottom-nav { position: fixed; bottom: 0; width: 100%; background: white; display: flex; border-top: 1px solid #ddd; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
         .nav-item { flex: 1; text-align: center; padding: 10px 0; font-size: 11px; cursor: pointer; color: #7f8c8d; }
         .nav-item.active { color: #3498db; font-weight: bold; }
@@ -53,9 +52,9 @@
                 <label>Out:</label> <input type="time" id="dailyOut" value="19:30">
                 <label>બ્રેક (કલાકમાં):</label> <input type="number" id="dailyBreak" step="0.1" value="0">
             </div>
-            <div class="leave-row" style="background:#fff3cd; padding:10px; border-radius:6px; margin-top:10px; display:flex; align-items:center; gap:10px;">
-                <input type="checkbox" id="isLeave" onchange="toggleLeaveMode('daily')">
-                <label for="isLeave">રજા છે?</label>
+            <div style="background:#fff3cd; padding:10px; border-radius:6px; margin-top:10px; display:flex; align-items:center; gap:10px;">
+                <input type="checkbox" id="isLeave" onchange="toggleLeaveMode()">
+                <label for="isLeave" style="margin:0;">રજા છે?</label>
                 <select id="leaveType" style="display:none; width:auto;">
                     <option value="Personal">Personal Leave</option>
                     <option value="Public">Public Holiday</option>
@@ -90,7 +89,7 @@
                     <div style="flex: 1;"><label>સુધી:</label><input type="date" id="reportTo" onchange="showReport()"></div>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 10px; background: #e8f4fd; padding: 10px; border-radius: 6px;">
-                    <div style="flex: 1;"><label>માસ્ટર તારીખ થી:</label><input type="date" id="masterFrom" onchange="showReport()"></div>
+                    <div style="flex: 1;"><label>માસ્ટર થી:</label><input type="date" id="masterFrom" onchange="showReport()"></div>
                     <div style="flex: 1;"><label>સુધી:</label><input type="date" id="masterTo" onchange="showReport()"></div>
                 </div>
                 <button onclick="downloadPDF()" style="margin-top:15px; background:#2c3e50; color:white;">📥 Download PDF</button>
@@ -104,11 +103,15 @@
 
     <div id="setting" class="tab-content">
         <div class="card">
-            <h3>⚙️ સેટિંગ</h3>
-            <input type="text" id="newNameInput" placeholder="નવું નામ...">
+            <h3>⚙️ કર્મચારી સેટિંગ</h3>
+            <label>નવું નામ ઉમેરો:</label>
+            <input type="text" id="newNameInput" placeholder="નામ લખો...">
             <button class="btn-save" onclick="addPerson()">માણસ એડ કરો</button>
         </div>
-        <div id="pListDisplay" class="card"></div>
+        <div class="card">
+            <h3>📋 કર્મચારી લિસ્ટ</h3>
+            <div id="pListDisplay">લિસ્ટ લોડ થાય છે...</div>
+        </div>
     </div>
 </div>
 
@@ -136,10 +139,12 @@
     const db = getDatabase(app);
     let persons = []; let attendance = [];
 
+    // --- સેટિંગ્સ: કર્મચારી લિસ્ટ લોડ કરવું ---
     onValue(ref(db, 'persons'), (snap) => {
         const d = snap.val();
         persons = d ? Object.entries(d).map(([key, name]) => ({key, name})) : [];
         updateLists();
+        renderSettingList();
     });
 
     onValue(ref(db, 'attendance'), (snap) => {
@@ -147,35 +152,71 @@
         attendance = d ? Object.values(d) : [];
     });
 
-    window.downloadPDF = () => {
-        const from = document.getElementById('reportFrom').value || "";
-        const to = document.getElementById('reportTo').value || "";
-        const element = document.createElement('div');
-        element.style.padding = "10px";
+    // નવું નામ ઉમેરવા માટે
+    window.addPerson = () => {
+        const name = document.getElementById('newNameInput').value.trim();
+        if (name) {
+            push(ref(db, 'persons'), name);
+            document.getElementById('newNameInput').value = "";
+            alert("નામ ઉમેરાઈ ગયું!");
+        } else {
+            alert("નામ લખો!");
+        }
+    };
 
-        const headerHtml = `
-            <div style="text-align:center; padding:15px; border-bottom:3px solid #34495e; margin-bottom:20px;">
-                <h1 style="margin:0; color:#2c3e50; font-size:28px;">Drishti Flanges & Metal</h1>
-                <p style="margin:10px 0; font-size:18px; font-weight:bold;">Monthly Attendance Report</p>
-                <p style="margin:5px 0; font-size:16px;">Period: ${from.split('-').reverse().join('/')} to ${to.split('-').reverse().join('/')}</p>
+    // નામ ડીલીટ કરવા માટે
+    window.deletePerson = (key) => {
+        if (confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) {
+            remove(ref(db, `persons/${key}`));
+        }
+    };
+
+    function renderSettingList() {
+        const container = document.getElementById('pListDisplay');
+        if (persons.length === 0) {
+            container.innerHTML = "કોઈ નામ નથી.";
+            return;
+        }
+        let html = "";
+        persons.forEach(p => {
+            html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee;">
+                <span>${p.name}</span>
+                <button class="btn-del" onclick="deletePerson('${p.key}')">X</button>
             </div>`;
+        });
+        container.innerHTML = html;
+    }
 
-        const sumClone = document.getElementById('summaryContainer').cloneNode(true);
-        const repClone = document.getElementById('reportContainer').cloneNode(true);
-        repClone.querySelectorAll('.print-hide').forEach(el => el.remove());
+    // --- એન્ટ્રી અને રિપોર્ટ લોજિક ---
+    window.toggleLeaveMode = () => {
+        const isL = document.getElementById('isLeave').checked;
+        document.getElementById('dailyTimeBox').style.display = isL ? 'none' : 'block';
+        document.getElementById('leaveType').style.display = isL ? 'inline-block' : 'none';
+        document.getElementById('leaveHrs').style.display = isL ? 'inline-block' : 'none';
+    };
 
-        element.appendChild(document.createRange().createContextualFragment(headerHtml));
-        element.appendChild(sumClone);
-        element.appendChild(repClone);
+    window.saveDaily = async () => {
+        const date = document.getElementById('dailyDate').value;
+        const name = document.getElementById('dailyName').value;
+        const isL = document.getElementById('isLeave').checked;
+        const bHrs = parseFloat(document.getElementById('dailyBreak').value || 0);
+        const rem = document.getElementById('dailyRemark').value.trim();
+        if(!name || !date) return alert("નામ અને તારીખ ભરો!");
+        
+        let tin = "--", tout = "--", hrs = 0, lType = "";
+        if(!isL) {
+            tin = document.getElementById('dailyIn').value;
+            tout = document.getElementById('dailyOut').value;
+            hrs = (calcHours(tin, tout) - bHrs).toFixed(1);
+        } else {
+            lType = document.getElementById('leaveType').value;
+            hrs = parseFloat(document.getElementById('leaveHrs').value || 0);
+        }
 
-        const opt = { 
-            margin: [10, 10], 
-            filename: 'Report.pdf', 
-            html2canvas: { scale: 3 }, 
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['css', 'legacy'], before: '.report-block' }
-        };
-        html2pdf().set(opt).from(element).save();
+        const id = push(ref(db, 'attendance')).key;
+        await set(ref(db, `attendance/${id}`), { id, name, date, tin, tout, breakHrs: bHrs, hours: hrs, item: rem, leaveType: lType });
+        alert("સેવ થયું!");
+        document.getElementById('dailyRemark').value = "";
     };
 
     window.showReport = () => {
@@ -190,22 +231,21 @@
         if(!sel) return;
 
         let names = (sel === "ALL") ? persons.map(p => p.name) : [sel];
-        let normalData = []; let masterData = [];
+        let nData = []; let mData = [];
 
         names.forEach(n => {
             const data = attendance.filter(a => a.name === n && (!from || a.date >= from) && (!to || a.date <= to)).sort((a,b) => new Date(a.date) - new Date(b.date));
-            const mD = attendance.filter(a => a.name === n && (!mFrom || a.date >= mFrom) && (!mTo || a.date <= mTo));
-            
             if(data.length > 0) {
                 let s = calculateStats(data);
-                normalData.push({ name: n, ...s });
+                nData.push({ name: n, ...s });
                 renderDetailTable(n, data, s);
             }
-            if(mD.length > 0 && mFrom && mTo) {
-                masterData.push({ name: n, ...calculateStats(mD) });
+            if(mFrom && mTo) {
+                const mD = attendance.filter(a => a.name === n && (a.date >= mFrom && a.date <= mTo));
+                if(mD.length > 0) mData.push({ name: n, ...calculateStats(mD) });
             }
         });
-        renderCombinedSummary(normalData, masterData, mFrom, mTo);
+        renderCombinedSummary(nData, mData, mFrom, mTo);
     };
 
     function calculateStats(data) {
@@ -220,110 +260,46 @@
     }
 
     function renderCombinedSummary(nData, mData, mFrom, mTo) {
-        // ટાઈટલ અને હેડર લાઈન તમારી ઈચ્છા મુજબ સુધારેલ છે
-        let h = `<div class="summary-page">
-            <h2 style="text-align:center; color:#2c3e50; border-bottom:2px solid #2c3e50; padding-bottom:5px; margin-bottom:10px;">Operator Summary</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:30%;">Name</th>
-                        <th>Total Hrs</th>
-                        <th>Work Day</th>
-                        <th>P. Leave</th>
-                        <th>Public Hol.</th>
-                        <th style="background:#d1d8e0; color:#000;">Total Leaves</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-        nData.forEach(s => { 
-            h += `<tr>
-                    <td style="text-align:left; font-weight:bold;">${s.name}</td>
-                    <td>${s.hrs}</td>
-                    <td>${s.wD}</td>
-                    <td>${s.pL}</td>
-                    <td>${s.hL}</td>
-                    <td style="font-weight:bold; background:#f9f9f9;">${s.totalL}</td>
-                </tr>`; 
-        });
+        let h = `<div class="summary-page"><h2 style="text-align:center;">Operator Summary</h2>
+            <table><thead><tr><th>Name</th><th>Hrs</th><th>Work</th><th>P.L</th><th>H.L</th><th>Total Leave</th></tr></thead><tbody>`;
+        nData.forEach(s => { h += `<tr><td style="text-align:left;"><b>${s.name}</b></td><td>${s.hrs}</td><td>${s.wD}</td><td>${s.pL}</td><td>${s.hL}</td><td><b>${s.totalL}</b></td></tr>`; });
         h += `</tbody></table>`;
-        
         if(mData.length > 0) {
-            const mf = mFrom.split('-').reverse().join('/'); const mt = mTo.split('-').reverse().join('/');
-            h += `<h2 style="margin-top:30px; text-align:center; color:#e67e22; border-bottom:2px solid #e67e22; padding-bottom:5px; margin-bottom:10px;">Master Summary (${mf} to ${mt})</h2>
-                <table>
-                    <thead>
-                        <tr style="background:#e67e22; color:white;">
-                            <th style="width:30%;">Name</th>
-                            <th>Master Hrs</th>
-                            <th>Work Day</th>
-                            <th>P. Leave</th>
-                            <th>Public Hol.</th>
-                            <th style="background:#d35400;">Total Leaves</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-            mData.forEach(s => { 
-                h += `<tr>
-                        <td style="text-align:left; font-weight:bold;">${s.name}</td>
-                        <td>${s.hrs}</td>
-                        <td>${s.wD}</td>
-                        <td>${s.pL}</td>
-                        <td>${s.hL}</td>
-                        <td style="font-weight:bold; background:#fff7ed;">${s.totalL}</td>
-                    </tr>`; 
-            });
+            h += `<h2 style="margin-top:20px; text-align:center; color:#e67e22;">Master Summary</h2>
+                <table><thead><tr style="background:#e67e22; color:white;"><th>Name</th><th>Hrs</th><th>Work</th><th>P.L</th><th>H.L</th><th>Total Leave</th></tr></thead><tbody>`;
+            mData.forEach(s => { h += `<tr><td style="text-align:left;"><b>${s.name}</b></td><td>${s.hrs}</td><td>${s.wD}</td><td>${s.pL}</td><td>${s.hL}</td><td><b>${s.totalL}</b></td></tr>`; });
             h += `</tbody></table>`;
         }
-        h += `</div>`;
         document.getElementById('summaryContainer').innerHTML = h;
     }
 
     function renderDetailTable(name, data, stats) {
-        let h = `<div class="report-block">
-            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #34495e; padding-bottom:5px; margin-bottom:10px;">
-                <h3 style="margin:0;">${name}</h3>
-                <p style="margin:0;"><b>Monthly Hours: ${stats.hrs}</b></p>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width:15%;">Date</th>
-                        <th>Remark</th>
-                        <th>In</th>
-                        <th>Out</th>
-                        <th style="width:12%;">Break</th>
-                        <th style="width:15%;">Net Hrs</th>
-                        <th class="print-hide" style="width:8%;">X</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+        let h = `<div class="report-block"><h3>${name} (Total Hrs: ${stats.hrs})</h3>
+            <table><thead><tr><th>Date</th><th>Remark</th><th>In</th><th>Out</th><th>Break</th><th>Net Hrs</th><th class="print-hide">X</th></tr></thead><tbody>`;
         data.forEach(a => {
-            h += `<tr>
-                <td>${a.date.split('-').reverse().join('/')}</td>
-                <td style="text-align:left;">${a.item||''}</td>
-                <td>${a.tin}</td>
-                <td>${a.tout}</td>
-                <td style="color:red;">${a.breakHrs||0}</td>
-                <td style="font-weight:bold;">${a.hours}</td>
-                <td class="print-hide"><button class="btn-del" onclick="deleteEntry('${a.id}')">X</button></td>
-            </tr>`;
+            h += `<tr><td>${a.date.split('-').reverse().join('/')}</td><td style="text-align:left;">${a.item||''}</td><td>${a.tin}</td><td>${a.tout}</td><td style="color:red;">${a.breakHrs||0}</td><td><b>${a.hours}</b></td><td class="print-hide"><button class="btn-del" onclick="deleteEntry('${a.id}')">X</button></td></tr>`;
         });
         h += `</tbody></table></div>`;
         document.getElementById('reportContainer').innerHTML += h;
     }
 
-    // બાકીના ફંક્શન્સ (saveDaily, calcHours, etc.)
-    window.toggleLeaveMode = (type) => {
-        const isL = document.getElementById('isLeave').checked;
-        document.getElementById('dailyTimeBox').style.display = isL ? 'none' : 'block';
-        document.getElementById('leaveType').style.display = isL ? 'inline-block' : 'none';
-        document.getElementById('leaveHrs').style.display = isL ? 'inline-block' : 'none';
+    window.downloadPDF = () => {
+        const from = document.getElementById('reportFrom').value;
+        const to = document.getElementById('reportTo').value;
+        const element = document.createElement('div');
+        element.innerHTML = `<div style="text-align:center; padding:15px; border-bottom:3px solid #34495e; margin-bottom:20px;">
+                <h1 style="margin:0;">Drishti Flanges & Metal</h1>
+                <p>Monthly Attendance Report (${from} to ${to})</p>
+            </div>` + document.getElementById('pdf-area').innerHTML;
+        
+        const opt = { margin: 10, filename: 'Report.pdf', html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        html2pdf().set(opt).from(element).save();
     };
-    window.saveDaily = async () => { /* ... (અગાઉ મુજબ) ... */ };
+
     function calcHours(i, o) { if(!i || !o || i === "--" || o === "--") return 0; let [h1, m1] = i.split(':').map(Number); let [h2, m2] = o.split(':').map(Number); let d = (h2*60+m2) - (h1*60+m1); if(d < 0) d += 1440; return (d/60); }
     window.deleteEntry = (id) => { if(confirm("Delete?")) remove(ref(db, `attendance/${id}`)); };
     window.showTab = (id, el) => { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(id).classList.add('active-tab'); el.classList.add('active'); };
-    window.updateLists = () => { document.querySelectorAll('.name-list').forEach(l => { let opt = "<option value=''>નામ પસંદ કરો</option>"; if(l.id === "reportName") opt += "<option value='ALL'>-- All Operators --</option>"; persons.forEach(p => opt += `<option value="${p.name}">${p.name}</option>`); l.innerHTML = opt; }); };
+    window.updateLists = () => { document.querySelectorAll('.name-list').forEach(l => { let opt = "<option value=''>નામ પસંદ કરો</option>"; if(l.id === "reportName") opt += "<option value='ALL'>-- All --</option>"; persons.forEach(p => opt += `<option value="${p.name}">${p.name}</option>`); l.innerHTML = opt; }); };
 </script>
 </body>
 </html>

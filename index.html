@@ -19,7 +19,6 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; table-layout: fixed; }
         th, td { border: 1px solid #777; padding: 8px 4px; text-align: center; word-wrap: break-word; color: #000; }
         th { background: #34495e; color: white; font-weight: bold; }
-        .total-row { background: #eee; font-weight: bold; font-size: 14px; }
         .tab-content { display: none; }
         .active-tab { display: block; }
         .report-block { page-break-before: always; padding: 20px 0; border-top: 1px solid #ccc; }
@@ -27,6 +26,8 @@
         .nav-item { flex: 1; text-align: center; padding: 10px 0; font-size: 11px; cursor: pointer; color: #7f8c8d; }
         .nav-item.active { color: #3498db; font-weight: bold; }
         .nav-item span { display: block; font-size: 18px; }
+        .date-container { display: flex; align-items: center; gap: 5px; margin-top: 5px; }
+        .date-btn { width: 45px; background: #3498db; color: white; border: none; cursor: pointer; padding: 10px; font-weight: bold; }
         @media print {
             .bottom-nav, .header, .btn-del, .print-hide, .btn-save, .refresh-icon, .card h3 { display: none !important; }
             body { background: white; padding: 0; }
@@ -45,7 +46,13 @@
     <div id="entry" class="tab-content active-tab">
         <div class="card">
             <h3>📝 રોજિંદી એન્ટ્રી</h3>
-            <label>તારીખ:</label> <input type="date" id="dailyDate">
+            <label>તારીખ:</label>
+            <div class="date-container">
+                <button class="date-btn" onclick="changeDate(-1)">&lt;</button>
+                <input type="date" id="dailyDate">
+                <button class="date-btn" onclick="changeDate(1)">&gt;</button>
+            </div>
+            
             <label>નામ પસંદ કરો:</label> <select id="dailyName" class="name-list"></select>
             <div id="dailyTimeBox">
                 <label>In:</label> <input type="time" id="dailyIn" value="08:00">
@@ -121,6 +128,7 @@
     <div class="nav-item" onclick="showTab('report', this)"><span>📊</span>રિપોર્ટ</div>
     <div class="nav-item" onclick="showTab('setting', this)"><span>⚙️</span>સેટિંગ</div>
 </div>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
     import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
@@ -139,7 +147,9 @@
     const db = getDatabase(app);
     let persons = []; let attendance = [];
 
-    // --- સેટિંગ્સ: કર્મચારી લિસ્ટ લોડ કરવું ---
+    // આજની તારીખ સેટ કરવી
+    document.getElementById('dailyDate').valueAsDate = new Date();
+
     onValue(ref(db, 'persons'), (snap) => {
         const d = snap.val();
         persons = d ? Object.entries(d).map(([key, name]) => ({key, name})) : [];
@@ -149,34 +159,25 @@
 
     onValue(ref(db, 'attendance'), (snap) => {
         const d = snap.val();
-        attendance = d ? Object.values(d) : [];
+        attendance = d ? Object.entries(d).map(([id, val]) => ({ id, ...val })) : [];
     });
 
-    // નવું નામ ઉમેરવા માટે
-    window.addPerson = () => {
-        const name = document.getElementById('newNameInput').value.trim();
-        if (name) {
-            push(ref(db, 'persons'), name);
-            document.getElementById('newNameInput').value = "";
-            alert("નામ ઉમેરાઈ ગયું!");
-        } else {
-            alert("નામ લખો!");
-        }
+    window.changeDate = (days) => {
+        const dInput = document.getElementById('dailyDate');
+        let d = new Date(dInput.value);
+        d.setDate(d.getDate() + days);
+        dInput.valueAsDate = d;
     };
 
-    // નામ ડીલીટ કરવા માટે
-    window.deletePerson = (key) => {
-        if (confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) {
-            remove(ref(db, `persons/${key}`));
-        }
+    window.addPerson = () => {
+        const name = document.getElementById('newNameInput').value.trim();
+        if (name) { push(ref(db, 'persons'), name); document.getElementById('newNameInput').value = ""; alert("નામ ઉમેરાઈ ગયું!"); }
     };
+
+    window.deletePerson = (key) => { if (confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) remove(ref(db, `persons/${key}`)); };
 
     function renderSettingList() {
         const container = document.getElementById('pListDisplay');
-        if (persons.length === 0) {
-            container.innerHTML = "કોઈ નામ નથી.";
-            return;
-        }
         let html = "";
         persons.forEach(p => {
             html += `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid #eee;">
@@ -184,10 +185,9 @@
                 <button class="btn-del" onclick="deletePerson('${p.key}')">X</button>
             </div>`;
         });
-        container.innerHTML = html;
+        container.innerHTML = html || "કોઈ નામ નથી.";
     }
 
-    // --- એન્ટ્રી અને રિપોર્ટ લોજિક ---
     window.toggleLeaveMode = () => {
         const isL = document.getElementById('isLeave').checked;
         document.getElementById('dailyTimeBox').style.display = isL ? 'none' : 'block';
@@ -195,13 +195,20 @@
         document.getElementById('leaveHrs').style.display = isL ? 'inline-block' : 'none';
     };
 
+    // ડુપ્લીકેટ ચેક ફંક્શન
+    function checkDuplicate(name, date) {
+        return attendance.some(a => a.name === name && a.date === date);
+    }
+
     window.saveDaily = async () => {
         const date = document.getElementById('dailyDate').value;
         const name = document.getElementById('dailyName').value;
+        if(!name || !date) return alert("નામ અને તારીખ પસંદ કરો!");
+        if(checkDuplicate(name, date)) return alert("Error: આ તારીખની એન્ટ્રી પહેલેથી થયેલી છે!");
+
         const isL = document.getElementById('isLeave').checked;
         const bHrs = parseFloat(document.getElementById('dailyBreak').value || 0);
         const rem = document.getElementById('dailyRemark').value.trim();
-        if(!name || !date) return alert("નામ અને તારીખ ભરો!");
         
         let tin = "--", tout = "--", hrs = 0, lType = "";
         if(!isL) {
@@ -214,9 +221,35 @@
         }
 
         const id = push(ref(db, 'attendance')).key;
-        await set(ref(db, `attendance/${id}`), { id, name, date, tin, tout, breakHrs: bHrs, hours: hrs, item: rem, leaveType: lType });
+        await set(ref(db, `attendance/${id}`), { name, date, tin, tout, breakHrs: bHrs, hours: hrs, item: rem, leaveType: lType });
         alert("સેવ થયું!");
         document.getElementById('dailyRemark').value = "";
+    };
+
+    window.saveBulk = async () => {
+        const name = document.getElementById('bulkName').value;
+        const from = document.getElementById('bulkFrom').value;
+        const to = document.getElementById('bulkTo').value;
+        if(!name || !from || !to) return alert("નામ અને તારીખ રેન્જ ભરો!");
+
+        let start = new Date(from);
+        let end = new Date(to);
+        let count = 0;
+
+        while(start <= end) {
+            let dStr = start.toISOString().split('T')[0];
+            if(!checkDuplicate(name, dStr)) {
+                let tin = document.getElementById('bulkIn').value;
+                let tout = document.getElementById('bulkOut').value;
+                let bHrs = parseFloat(document.getElementById('bulkBreak').value || 0);
+                let hrs = (calcHours(tin, tout) - bHrs).toFixed(1);
+                const id = push(ref(db, 'attendance')).key;
+                await set(ref(db, `attendance/${id}`), { name, date: dStr, tin, tout, breakHrs: bHrs, hours: hrs, item: "Bulk Entry", leaveType: "" });
+                count++;
+            }
+            start.setDate(start.getDate() + 1);
+        }
+        alert(count + " નવી એન્ટ્રી સેવ થઈ!");
     };
 
     window.showReport = () => {
@@ -245,7 +278,7 @@
                 if(mD.length > 0) mData.push({ name: n, ...calculateStats(mD) });
             }
         });
-        renderCombinedSummary(nData, mData, mFrom, mTo);
+        renderCombinedSummary(nData, mData);
     };
 
     function calculateStats(data) {
@@ -259,7 +292,7 @@
         return { hrs: hrs.toFixed(1), pL, hL, wD, totalL: (pL + hL) };
     }
 
-    function renderCombinedSummary(nData, mData, mFrom, mTo) {
+    function renderCombinedSummary(nData, mData) {
         let h = `<div class="summary-page"><h2 style="text-align:center;">Operator Summary</h2>
             <table><thead><tr><th>Name</th><th>Hrs</th><th>Work</th><th>P.L</th><th>H.L</th><th>Total Leave</th></tr></thead><tbody>`;
         nData.forEach(s => { h += `<tr><td style="text-align:left;"><b>${s.name}</b></td><td>${s.hrs}</td><td>${s.wD}</td><td>${s.pL}</td><td>${s.hL}</td><td><b>${s.totalL}</b></td></tr>`; });
@@ -275,9 +308,9 @@
 
     function renderDetailTable(name, data, stats) {
         let h = `<div class="report-block"><h3>${name} (Total Hrs: ${stats.hrs})</h3>
-            <table><thead><tr><th>Date</th><th>Remark</th><th>In</th><th>Out</th><th>Break</th><th>Net Hrs</th><th class="print-hide">X</th></tr></thead><tbody>`;
+            <table><thead><tr><th>Date</th><th>Remark</th><th>In</th><th>Out</th><th>Break</th><th>Net Hrs</th><th class="del-col-print">X</th></tr></thead><tbody>`;
         data.forEach(a => {
-            h += `<tr><td>${a.date.split('-').reverse().join('/')}</td><td style="text-align:left;">${a.item||''}</td><td>${a.tin}</td><td>${a.tout}</td><td style="color:red;">${a.breakHrs||0}</td><td><b>${a.hours}</b></td><td class="print-hide"><button class="btn-del" onclick="deleteEntry('${a.id}')">X</button></td></tr>`;
+            h += `<tr><td>${a.date.split('-').reverse().join('/')}</td><td style="text-align:left;">${a.item||''}</td><td>${a.tin}</td><td>${a.tout}</td><td style="color:red;">${a.breakHrs||0}</td><td><b>${a.hours}</b></td><td class="del-col-print"><button class="btn-del" onclick="deleteEntry('${a.id}')">X</button></td></tr>`;
         });
         h += `</tbody></table></div>`;
         document.getElementById('reportContainer').innerHTML += h;
@@ -292,14 +325,18 @@
                 <p>Monthly Attendance Report (${from} to ${to})</p>
             </div>` + document.getElementById('pdf-area').innerHTML;
         
+        // PDF માંથી ડીલીટ કોલમ હટાવવી
+        element.querySelectorAll('.del-col-print').forEach(el => el.remove());
+
         const opt = { margin: 10, filename: 'Report.pdf', html2canvas: { scale: 3 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
         html2pdf().set(opt).from(element).save();
     };
 
     function calcHours(i, o) { if(!i || !o || i === "--" || o === "--") return 0; let [h1, m1] = i.split(':').map(Number); let [h2, m2] = o.split(':').map(Number); let d = (h2*60+m2) - (h1*60+m1); if(d < 0) d += 1440; return (d/60); }
-    window.deleteEntry = (id) => { if(confirm("Delete?")) remove(ref(db, `attendance/${id}`)); };
+    window.deleteEntry = (id) => { if(confirm("ખરેખર ડીલીટ કરવું છે?")) { remove(ref(db, `attendance/${id}`)); alert("ડીલીટ થઈ ગયું!"); showReport(); } };
     window.showTab = (id, el) => { document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab')); document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); document.getElementById(id).classList.add('active-tab'); el.classList.add('active'); };
     window.updateLists = () => { document.querySelectorAll('.name-list').forEach(l => { let opt = "<option value=''>નામ પસંદ કરો</option>"; if(l.id === "reportName") opt += "<option value='ALL'>-- All --</option>"; persons.forEach(p => opt += `<option value="${p.name}">${p.name}</option>`); l.innerHTML = opt; }); };
 </script>
 </body>
 </html>
+

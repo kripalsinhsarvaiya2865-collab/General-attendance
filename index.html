@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <title>Drishti Flanges & Metal - Attendance</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f4f6fb;
+            --surface: #ffffff;
+            --surface2: #f0f3fa;
+            --border: #dde3f0;
+            --accent: #1a56db;
+            --accent2: #e67e22;
+            --text: #1a202c;
+            --text-muted: #6b7280;
+            --green: #16a34a;
+            --red: #e74c3c;
+            --blue: #1a56db;
+            --card-shadow: 0 2px 16px rgba(0,0,0,0.07);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; color-scheme: light only; }
+
+        /* Force light mode - OS dark mode ને override કરો */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #f4f6fb !important;
+                --surface: #ffffff !important;
+                --surface2: #f0f3fa !important;
+                --border: #dde3f0 !important;
+                --text: #1a202c !important;
+                --text-muted: #6b7280 !important;
+            }
+            body { background: #f4f6fb !important; color: #1a202c !important; }
+            input, select { background: #f0f3fa !important; color: #1a202c !important; border-color: #dde3f0 !important; }
+            .card { background: #ffffff !important; }
+            .bottom-nav { background: #ffffff !important; }
+        }
+
+        body {
+            font-family: 'Noto Sans Gujarati', 'Rajdhani', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding-bottom: 75px;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%);
+            border-bottom: 2px solid #1a56db;
+            padding: 12px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        .header-title { line-height: 1.2; }
+        .header-title .main { font-family: 'Rajdhani', sans-serif; font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 1px; }
+        .header-title .sub { font-size: 10px; color: rgba(255,255,255,0.65); letter-spacing: 2px; text-transform: uppercase; }
+        .refresh-btn {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 16px;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover { background: rgba(255,255,255,0.3); border-color: rgba(255,255,255,0.5); }
+
+        /* ── CONTENT ── */
+        .content { padding: 14px; }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: var(--card-shadow);
+        }
+        .card-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── FORM ELEMENTS ── */
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-top: 14px;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(240,165,0,0.1);
+        }
+        input[type="checkbox"] {
+            width: 18px; height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        select option { background: var(--surface2); color: var(--text); }
+
+        /* ── BUTTONS ── */
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            cursor: pointer;
+            margin-top: 14px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+        }
+        .btn-green { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
+        .btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(46,204,113,0.3); }
+        .btn-orange { background: linear-gradient(135deg, #e67e22, #f39c12); color: #fff; }
+        .btn-orange:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(230,126,34,0.3); }
+        .btn-dark { background: linear-gradient(135deg, #2c3e50, #34495e); color: var(--accent); border: 1px solid var(--accent); }
+        .btn-dark:hover { background: var(--accent); color: #000; }
+        .btn-del {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            width: auto;
+            transition: opacity 0.2s;
+        }
+        .btn-del:hover { opacity: 0.8; }
+
+        /* ── DATE NAV ── */
+        .date-container { display: flex; align-items: center; gap: 8px; }
+        .date-arrow {
+            width: 42px; height: 42px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .date-arrow:hover { background: var(--accent); color: #000; }
+        .date-container input { flex: 1; }
+
+        /* ── LEAVE TOGGLE ── */
+        .leave-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .leave-box label { margin: 0; color: #1a56db; font-size: 12px; letter-spacing: 1px; }
+        .leave-box select, .leave-box input[type="number"] {
+            width: auto;
+            padding: 8px 10px;
+            font-size: 13px;
+            background: var(--surface);
+        }
+
+        /* ── TABS ── */
+        .tab-content { display: none; }
+        .active-tab { display: block; }
+
+        /* ── BOTTOM NAV ── */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            display: flex;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+            z-index: 200;
+        }
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 9px 4px;
+            font-size: 10px;
+            cursor: pointer;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            border-top: 2px solid transparent;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+        }
+        .nav-item.active { color: var(--accent); border-top-color: var(--accent); }
+        .nav-item span { display: block; font-size: 20px; margin-bottom: 2px; }
+
+        /* ── TABLES ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 12px;
+            table-layout: fixed;
+        }
+        th {
+            background: var(--surface2);
+            color: var(--accent);
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 9px 6px;
+            border: 1px solid var(--border);
+            font-weight: 700;
+        }
+        td {
+            border: 1px solid var(--border);
+            padding: 8px 5px;
+            text-align: center;
+            word-wrap: break-word;
+            color: var(--text);
+            font-size: 12px;
+        }
+        tbody tr:hover { background: rgba(240,165,0,0.04); }
+
+        /* ── REPORT ── */
+        .report-block {
+            page-break-before: always;
+            padding: 16px 0;
+            border-top: 1px solid var(--border);
+        }
+        .report-block h3 {
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--accent);
+            letter-spacing: 1px;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+
+        /* ── MASTER DATE ROW ── */
+        .master-section {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-top: 12px;
+        }
+        .master-section label { color: #c2410c; }
+
+        /* ── PERSON LIST ── */
+        .person-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            font-size: 14px;
+        }
+        .person-row:last-child { border-bottom: none; }
+
+        /* ── PRINT ── */
+        @media print {
+            body { background: white !important; color: black !important; padding: 0; }
+            .bottom-nav, .header, .btn-del, .print-hide, .btn, .refresh-btn, .card-title { display: none !important; }
+            .card { border: none; box-shadow: none; background: white; }
+            table, th, td { border-color: #888 !important; color: black !important; }
+            th { background: #34495e !important; color: white !important; }
+            .report-block h3 { color: #2c3e50 !important; }
+        }
+
+        /* ── ANIMATIONS ── */
+        .card { animation: fadeUp 0.3s ease both; }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── STAT CHIPS ── */
+        .stat-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .stat-chip {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .stat-chip b { color: var(--text); }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-logo">
+        <div class="header-icon">⚙️</div>
+        <div class="header-title">
+            <div class="main">Drishti Flanges</div>
+            <div class="sub">Attendance System</div>
+        </div>
+    </div>
+    <div class="refresh-btn" onclick="location.reload()">🔄</div>
+</div>
+
+<div class="content">
+
+    <!-- ENTRY TAB -->
+    <div id="entry" class="tab-content active-tab">
+        <div class="card">
+            <div class="card-title">📝 રોજિંદી એન્ટ્રી</div>
+
+            <label>તારીખ</label>
+            <div class="date-container">
+                <button class="date-arrow" onclick="changeDate(-1)">‹</button>
+                <input type="date" id="dailyDate">
+                <button class="date-arrow" onclick="changeDate(1)">›</button>
+            </div>
+
+            <label>કર્મચારી નામ</label>
+            <select id="dailyName" class="name-list"></select>
+
+            <div id="dailyTimeBox">
+                <label>In Time</label>
+                <input type="time" id="dailyIn" value="08:00">
+                <label>Out Time</label>
+                <input type="time" id="dailyOut" value="19:30">
+                <label>બ્રેક (કલાકમાં)</label>
+                <input type="number" id="dailyBreak" step="0.1" value="0">
+            </div>
+
+            <div class="leave-box">
+                <input type="checkbox" id="isLeave" onchange="toggleLeaveMode()">
+                <label for="isLeave">🏖️ રજા છે?</label>
+                <select id="leaveType" style="display:none;">
+                    <option value="Personal">Personal Leave</option>
+                    <option value="Public">Public Holiday</option>
+                </select>
+                <input type="number" id="leaveHrs" placeholder="કલાક" style="display:none; width:80px;">
+            </div>
+
+            <label>વિગત / નોંધ</label>
+            <input type="text" id="dailyRemark" placeholder="નોંધ લખો...">
+
+            <button class="btn btn-green" onclick="saveDaily()">✓ સેવ કરો</button>
+        </div>
+    </div>
+
+    <!-- BULK TAB -->
+    <div id="bulk" class="tab-content">
+        <div class="card">
+            <div class="card-title">📅 બલ્ક એન્ટ્રી</div>
+
+            <label>કર્મચારી નામ</label>
+            <select id="bulkName" class="name-list"></select>
+
+            <label>તારીખ થી</label>
+            <input type="date" id="bulkFrom">
+            <label>તારીખ સુધી</label>
+            <input type="date" id="bulkTo">
+            <label>In Time</label>
+            <input type="time" id="bulkIn" value="08:00">
+            <label>Out Time</label>
+            <input type="time" id="bulkOut" value="19:30">
+            <label>બ્રેક (કલાક)</label>
+            <input type="number" id="bulkBreak" step="0.1" value="0">
+
+            <button class="btn btn-orange" onclick="saveBulk()">⚡ બલ્ક સેવ કરો</button>
+        </div>
+    </div>
+
+    <!-- REPORT TAB -->
+    <div id="report" class="tab-content">
+        <div class="card">
+            <div class="card-title print-hide">📊 રિપોર્ટ</div>
+
+            <div class="print-hide">
+                <label>કર્મચારી પસંદ કરો</label>
+                <select id="reportName" class="name-list" onchange="showReport()"></select>
+
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label>રિપોર્ટ થી</label>
+                        <input type="date" id="reportFrom" onchange="showReport()">
+                    </div>
+                    <div style="flex:1;">
+                        <label>સુધી</label>
+                        <input type="date" id="reportTo" onchange="showReport()">
+                    </div>
+                </div>
+
+                <div class="master-section">
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label>🔶 માસ્ટર થી</label>
+                            <input type="date" id="masterFrom" onchange="showReport()">
+                        </div>
+                        <div style="flex:1;">
+                            <label>🔶 સુધી</label>
+                            <input type="date" id="masterTo" onchange="showReport()">
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-dark" onclick="downloadPDF()">📥 Download PDF</button>
+            </div>
+
+            <div id="pdf-area">
+                <div id="summaryContainer"></div>
+                <div id="reportContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTING TAB -->
+    <div id="setting" class="tab-content">
+        <div class="card">
+            <div class="card-title">➕ નવો કર્મચારી</div>
+            <label>નામ</label>
+            <input type="text" id="newNameInput" placeholder="નામ લખો...">
+            <button class="btn btn-green" onclick="addPerson()">+ એડ કરો</button>
+        </div>
+        <div class="card">
+            <div class="card-title">👥 કર્મચારી લિસ્ટ</div>
+            <div id="pListDisplay" style="color:var(--text-muted); font-size:14px;">લોડ થઈ રહ્યું છે...</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="showTab('entry', this)"><span>📝</span>એન્ટ્રી</div>
+    <div class="nav-item" onclick="showTab('bulk', this)"><span>📅</span>બલ્ક</div>
+    <div class="nav-item" onclick="showTab('report', this)"><span>📊</span>રિપોર્ટ</div>
+    <div class="nav-item" onclick="showTab('setting', this)"><span>⚙️</span>સેટિંગ</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyAuBd2AioQmGZQ_-ZGtkJ6ZHIYh0GqR4E0",
+        authDomain: "attendance-96700.firebaseapp.com",
+        databaseURL: "https://attendance-96700-default-rtdb.firebaseio.com",
+        projectId: "attendance-96700",
+        storageBucket: "attendance-96700.firebasestorage.app",
+        messagingSenderId: "945000495965",
+        appId: "1:945000495965:web:6f4297ce9005b9681846b4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    let persons = []; let attendance = [];
+
+    document.getElementById('dailyDate').valueAsDate = new Date();
+
+    onValue(ref(db, 'persons'), (snap) => {
+        const d = snap.val();
+        persons = d ? Object.entries(d).map(([key, name]) => ({key, name})) : [];
+        updateLists();
+        renderSettingList();
+    });
+
+    onValue(ref(db, 'attendance'), (snap) => {
+        const d = snap.val();
+        attendance = d ? Object.entries(d).map(([id, val]) => ({ id, ...val })) : [];
+    });
+
+    window.changeDate = (days) => {
+        const dInput = document.getElementById('dailyDate');
+        let d = new Date(dInput.value);
+        d.setDate(d.getDate() + days);
+        dInput.valueAsDate = d;
+    };
+
+    window.addPerson = () => {
+        const name = document.getElementById('newNameInput').value.trim();
+        if (name) { push(ref(db, 'persons'), name); document.getElementById('newNameInput').value = ""; alert("નામ ઉમેરાઈ ગયું!"); }
+    };
+
+    window.deletePerson = (key) => { if (confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) remove(ref(db, `persons/${key}`)); };
+
+    function renderSettingList() {
+        const container = document.getElementById('pListDisplay');
+        let html = "";
+        persons.forEach(p => {
+            html += `<div class="person-row">
+                <span>${p.name}</span>
+                <button class="btn-del" onclick="deletePerson('${p.key}')">✕ કાઢો</button>
+            </div>`;
+        });
+        container.innerHTML = html || "<span style='color:var(--text-muted)'>કોઈ નામ નથી.</span>";
+    }
+
+    window.toggleLeaveMode = () => {
+        const isL = document.getElementById('isLeave').checked;
+        document.getElementById('dailyTimeBox').style.display = isL ? 'none' : 'block';
+        document.getElementById('leaveType').style.display = isL ? 'inline-block' : 'none';
+        document.getElementById('leaveHrs').style.display = isL ? 'inline-block' : 'none';
+    };
+
+    function checkDuplicate(name, date) {
+        return attendance.some(a => a.name === name && a.date === date);
+    }
+
+    window.saveDaily = async () => {
+        const date = document.getElementById('dailyDate').value;
+        const name = document.getElementById('dailyName').value;
+        if(!name || !date) return alert("નામ અને તારીખ પસંદ કરો!");
+        if(checkDuplicate(name, date)) return alert("Error: આ તારીખની એન્ટ્રી પહેલેથી થયેલી છે!");
+
+        const isL = document.getElementById('isLeave').checked;
+        const bHrs = parseFloat(document.getElementById('dailyBreak').value || 0);
+        const rem = document.getElementById('dailyRemark').value.trim();
+
+        let tin = "--", tout = "--", hrs = 0, lType = "";
+        if(!isL) {
+            tin = document.getElementById('dailyIn').value;
+            tout = document.getElementById('dailyOut').value;
+            hrs = (calcHours(tin, tout) - bHrs).toFixed(1);
+        } else {
+            lType = document.getElementById('leaveType').value;
+            hrs = parseFloat(document.getElementById('leaveHrs').value || 0);
+        }
+
+        const id = push(ref(db, 'attendance')).key;
+        await set(ref(db, `attendance/${id}`), { name, date, tin, tout, breakHrs: bHrs, hours: hrs, item: rem, leaveType: lType });
+        alert("✓ સેવ થયું!");
+        document.getElementById('dailyRemark').value = "";
+    };
+
+    window.saveBulk = async () => {
+        const name = document.getElementById('bulkName').value;
+        const from = document.getElementById('bulkFrom').value;
+        const to = document.getElementById('bulkTo').value;
+        if(!name || !from || !to) return alert("નામ અને તારીખ રેન્જ ભરો!");
+
+        let start = new Date(from);
+        let end = new Date(to);
+        let count = 0;
+
+        while(start <= end) {
+            let dStr = start.toISOString().split('T')[0];
+            if(!checkDuplicate(name, dStr)) {
+                let tin = document.getElementById('bulkIn').value;
+                let tout = document.getElementById('bulkOut').value;
+                let bHrs = parseFloat(document.getElementById('bulkBreak').value || 0);
+                let hrs = (calcHours(tin, tout) - bHrs).toFixed(1);
+                const id = push(ref(db, 'attendance')).key;
+                await set(ref(db, `attendance/${id}`), { name, date: dStr, tin, tout, breakHrs: bHrs, hours: hrs, item: "", leaveType: "" });
+                count++;
+            }
+            start.setDate(start.getDate() + 1);
+        }
+        alert(count + " નવી એન્ટ્રી સેવ થઈ!");
+    };
+
+    window.showReport = () => {
+        const sel = document.getElementById('reportName').value;
+        const from = document.getElementById('reportFrom').value;
+        const to = document.getElementById('reportTo').value;
+        const mFrom = document.getElementById('masterFrom').value;
+        const mTo = document.getElementById('masterTo').value;
+
+        document.getElementById('summaryContainer').innerHTML = "";
+        document.getElementById('reportContainer').innerHTML = "";
+        if(!sel) return;
+
+        let names = (sel === "ALL") ? persons.map(p => p.name) : [sel];
+        let nData = []; let mData = [];
+
+        names.forEach(n => {
+            const data = attendance.filter(a => a.name === n && (!from || a.date >= from) && (!to || a.date <= to)).sort((a,b) => new Date(a.date) - new Date(b.date));
+            if(data.length > 0) {
+                let s = calculateStats(data);
+                nData.push({ name: n, ...s });
+                renderDetailTable(n, data, s);
+            }
+            if(mFrom && mTo) {
+                const mD = attendance.filter(a => a.name === n && (a.date >= mFrom && a.date <= mTo));
+                if(mD.length > 0) mData.push({ name: n, ...calculateStats(mD) });
+            }
+        });
+        renderCombinedSummary(nData, mData);
+    };
+
+    function calculateStats(data) {
+        let hrs = 0, pL = 0, hL = 0, wD = 0;
+        data.forEach(a => {
+            hrs += parseFloat(a.hours || 0);
+            if(a.leaveType === "Personal") pL++;
+            else if(a.leaveType === "Public" || a.item?.includes("Sunday")) hL++;
+            else wD++;
+        });
+        return { hrs: hrs.toFixed(1), pL, hL, wD, totalL: (pL + hL) };
+    }
+
+    function renderCombinedSummary(nData, mData) {
+        let h = `<div class="summary-page" style="margin-bottom:20px;">
+            <h2 style="text-align:center; font-family:'Rajdhani',sans-serif; color:#f0a500; letter-spacing:2px; margin-bottom:12px;">OPERATOR SUMMARY</h2>
+            <table><thead><tr>
+                <th style="text-align:left;">Name</th>
+                <th>Hrs</th><th>Work Days</th><th>P.L</th><th>H.L</th><th>Total Leave</th>
+            </tr></thead><tbody>`;
+        nData.forEach(s => {
+            h += `<tr>
+                <td style="text-align:left; font-weight:600;">${s.name}</td>
+                <td><b>${s.hrs}</b></td><td>${s.wD}</td>
+                <td style="color:#e67e22;">${s.pL}</td>
+                <td style="color:#e74c3c;">${s.hL}</td>
+                <td><b>${s.totalL}</b></td>
+            </tr>`;
+        });
+        h += `</tbody></table>`;
+
+        if(mData.length > 0) {
+            h += `<h2 style="margin-top:20px; text-align:center; font-family:'Rajdhani',sans-serif; color:#ff6b35; letter-spacing:2px; margin-bottom:12px;">MASTER SUMMARY</h2>
+                <table><thead><tr style="background:#e67e22 !important;">
+                    <th style="text-align:left; color:white;">Name</th>
+                    <th style="color:white;">Hrs</th><th style="color:white;">Work Days</th>
+                    <th style="color:white;">P.L</th><th style="color:white;">H.L</th><th style="color:white;">Total Leave</th>
+                </tr></thead><tbody>`;
+            mData.forEach(s => {
+                h += `<tr>
+                    <td style="text-align:left; font-weight:600;">${s.name}</td>
+                    <td><b>${s.hrs}</b></td><td>${s.wD}</td>
+                    <td style="color:#e67e22;">${s.pL}</td>
+                    <td style="color:#e74c3c;">${s.hL}</td>
+                    <td><b>${s.totalL}</b></td>
+                </tr>`;
+            });
+            h += `</tbody></table>`;
+        }
+        document.getElementById('summaryContainer').innerHTML = h;
+    }
+
+    function renderDetailTable(name, data, stats) {
+        let h = `<div class="report-block">
+            <h3>${name} 
+                <span style="font-size:12px; color:var(--text-muted); font-weight:400; margin-left:8px;">
+                    Total: ${stats.hrs} hrs | Work: ${stats.wD} | P.L: ${stats.pL} | H.L: ${stats.hL}
+                </span>
+            </h3>
+            <table><thead><tr>
+                <th>Date</th><th>Remark</th><th>In</th><th>Out</th><th>Break</th><th>Net Hrs</th>
+                <th class="del-col-print" style="width:40px;">✕</th>
+            </tr></thead><tbody>`;
+
+        data.forEach(a => {
+            const dateStr = a.date.split('-').reverse().join('/');
+            const isLeave = a.leaveType && a.leaveType !== "";
+            const leaveLabel = a.leaveType === "Personal" ? "Personal Leave" : a.leaveType === "Public" ? "Public Holiday" : "";
+            const remarkDisplay = isLeave
+                ? `<span style="color:${a.leaveType === "Personal" ? "#e67e22" : "#e74c3c"}; font-weight:bold;">${leaveLabel}</span>${a.item ? ' · ' + a.item : ''}`
+                : (a.item || '');
+            const rowStyle = isLeave
+                ? `background:${a.leaveType === "Personal" ? "rgba(230,126,34,0.08)" : "rgba(231,76,60,0.08)"};`
+                : "";
+
+            h += `<tr style="${rowStyle}">
+                <td style="font-weight:600;">${dateStr}</td>
+                <td style="text-align:left;">${remarkDisplay}</td>
+                <td>${a.tin}</td>
+                <td>${a.tout}</td>
+                <td style="color:#e74c3c;">${a.breakHrs||0}</td>
+                <td><b style="color:#2ecc71;">${a.hours}</b></td>
+                <td class="del-col-print">
+                    <button class="btn-del" onclick="deleteEntry('${a.id}')">✕</button>
+                </td>
+            </tr>`;
+        });
+
+        h += `</tbody></table></div>`;
+        document.getElementById('reportContainer').innerHTML += h;
+    }
+
+    window.downloadPDF = () => {
+        const from = document.getElementById('reportFrom').value;
+        const to = document.getElementById('reportTo').value;
+        const element = document.createElement('div');
+        element.style.cssText = "font-family: 'Segoe UI', sans-serif; color: #000; background: white;";
+        element.innerHTML = `
+            <div style="text-align:center; padding:20px 0 15px; border-bottom:3px solid #2c3e50; margin-bottom:20px;">
+                <h1 style="margin:0; font-size:22px; color:#2c3e50; letter-spacing:2px;">DRISHTI FLANGES & METAL</h1>
+                <p style="margin:4px 0 0; color:#7f8c8d; font-size:13px; letter-spacing:1px;">MONTHLY ATTENDANCE REPORT · ${from} TO ${to}</p>
+            </div>
+            <style>
+                table { width:100%; border-collapse:collapse; margin:10px 0; font-size:12px; }
+                th { background:#34495e; color:white; padding:8px 6px; text-align:center; border:1px solid #777; font-size:11px; letter-spacing:0.5px; }
+                td { border:1px solid #aaa; padding:7px 5px; text-align:center; color:#000; }
+                .report-block { page-break-before:always; padding:14px 0; border-top:1px solid #ccc; }
+                .report-block h3 { font-size:14px; color:#2c3e50; margin-bottom:6px; }
+                .summary-page h2 { font-size:16px; color:#2c3e50; text-align:center; margin-bottom:10px; letter-spacing:1px; }
+            </style>
+        ` + document.getElementById('pdf-area').innerHTML;
+
+        element.querySelectorAll('.del-col-print').forEach(el => el.remove());
+        // Fix colors for print
+        element.querySelectorAll('tr[style]').forEach(tr => {
+            if(tr.style.background.includes('rgba')) tr.style.background = tr.style.background.includes('230,126') ? '#fff8ee' : '#fff0f0';
+        });
+
+        const opt = {
+            margin: 10,
+            filename: `Attendance_Report_${from}_${to}.pdf`,
+            html2canvas: { scale: 3, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    };
+
+    function calcHours(i, o) {
+        if(!i || !o || i === "--" || o === "--") return 0;
+        let [h1,m1] = i.split(':').map(Number);
+        let [h2,m2] = o.split(':').map(Number);
+        let d = (h2*60+m2) - (h1*60+m1);
+        if(d < 0) d += 1440;
+        return (d/60);
+    }
+
+    window.deleteEntry = (id) => {
+        if(confirm("ખરેખર ડીલીટ કરવું છે?")) {
+            remove(ref(db, `attendance/${id}`));
+            alert("ડીલીટ થઈ ગયું!");
+            showReport();
+        }
+    };
+
+    window.showTab = (id, el) => {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active-tab'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active-tab');
+        el.classList.add('active');
+    };
+
+    window.updateLists = () => {
+        document.querySelectorAll('.name-list').forEach(l => {
+            let opt = "<option value=''>-- નામ પસંદ કરો --</option>";
+            if(l.id === "reportName") opt += "<option value='ALL'>⊞ All Employees</option>";
+            persons.forEach(p => opt += `<option value="${p.name}">${p.name}</option>`);
+            l.innerHTML = opt;
+        });
+    };
+</script>
+</body>
+</html>

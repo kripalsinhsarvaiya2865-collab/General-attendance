@@ -187,6 +187,55 @@
             transition: opacity 0.2s;
         }
         .btn-del:hover { opacity: 0.8; }
+        .btn-edit {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 700;
+            width: auto;
+            transition: opacity 0.2s;
+            margin-right: 4px;
+        }
+        .btn-edit:hover { opacity: 0.8; }
+
+        /* ── EDIT MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px 20px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            animation: fadeUp 0.25s ease both;
+        }
+        .modal-title {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+        .modal-actions button { flex: 1; margin-top: 0; }
 
         /* ── DATE NAV ── */
         .date-container { display: flex; align-items: center; gap: 8px; }
@@ -497,6 +546,24 @@
 
 </div>
 
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+        <div class="modal-title">✏️ એન્ટ્રી સુધારો</div>
+        <input type="hidden" id="editId">
+        <label>તારીખ</label>
+        <input type="date" id="editDate">
+        <label>In Time</label>
+        <input type="time" id="editIn">
+        <label>Out Time</label>
+        <input type="time" id="editOut">
+        <div class="modal-actions">
+            <button class="btn btn-green" onclick="saveEdit()">✓ સેવ</button>
+            <button class="btn btn-dark" onclick="closeEditModal()">✕ રદ</button>
+        </div>
+    </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
     <div class="nav-item active" onclick="showTab('entry', this)"><span>📝</span>એન્ટ્રી</div>
@@ -507,7 +574,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+    import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyAuBd2AioQmGZQ_-ZGtkJ6ZHIYh0GqR4E0",
@@ -714,7 +781,7 @@
             </h3>
             <table><thead><tr>
                 <th>Date</th><th>Remark</th><th>In</th><th>Out</th><th>Break</th><th>Net Hrs</th>
-                <th class="del-col-print" style="width:40px;">✕</th>
+                <th class="del-col-print" style="width:70px;">✕/✏️</th>
             </tr></thead><tbody>`;
 
         data.forEach(a => {
@@ -736,6 +803,7 @@
                 <td style="color:#e74c3c;">${a.breakHrs||0}</td>
                 <td><b style="color:#2ecc71;">${a.hours}</b></td>
                 <td class="del-col-print">
+                    <button class="btn-edit" onclick="editEntry('${a.id}')">✏️</button>
                     <button class="btn-del" onclick="deleteEntry('${a.id}')">✕</button>
                 </td>
             </tr>`;
@@ -795,6 +863,37 @@
             alert("ડીલીટ થઈ ગયું!");
             showReport();
         }
+    };
+
+    window.editEntry = (id) => {
+        const entry = attendance.find(a => a.id === id);
+        if(!entry) return;
+        document.getElementById('editId').value = id;
+        document.getElementById('editDate').value = entry.date;
+        document.getElementById('editIn').value = entry.tin !== '--' ? entry.tin : '';
+        document.getElementById('editOut').value = entry.tout !== '--' ? entry.tout : '';
+        document.getElementById('editModal').classList.add('open');
+    };
+
+    window.saveEdit = async () => {
+        const id = document.getElementById('editId').value;
+        const date = document.getElementById('editDate').value;
+        const tin = document.getElementById('editIn').value || '--';
+        const tout = document.getElementById('editOut').value || '--';
+        if(!date) return alert("તારીખ ભરો!");
+
+        const entry = attendance.find(a => a.id === id);
+        const bHrs = parseFloat(entry?.breakHrs || 0);
+        const hrs = (tin !== '--' && tout !== '--') ? (calcHours(tin, tout) - bHrs).toFixed(1) : entry?.hours || 0;
+
+        await update(ref(db, `attendance/${id}`), { date, tin, tout, hours: hrs });
+        document.getElementById('editModal').classList.remove('open');
+        alert("✓ સુધારો સેવ થઈ ગયો!");
+        showReport();
+    };
+
+    window.closeEditModal = () => {
+        document.getElementById('editModal').classList.remove('open');
     };
 
     window.showTab = (id, el) => {

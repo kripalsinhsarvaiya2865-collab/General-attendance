@@ -117,7 +117,7 @@
                     <button class="date-arrow" onclick="attChangeDate(1)">›</button>
                 </div>
                 <label>કર્મચારી નામ</label>
-                <select id="dailyName" class="att-name-list"></select>
+                <select id="dailyName" class="att-name-list" onchange="attLoadPersonDefaultTime(this.value)"></select>
                 <div id="dailyTimeBox">
                     <label>In Time</label>
                     <input type="time" id="dailyIn" value="08:00">
@@ -272,6 +272,7 @@
     const attDb = getDatabase(attApp);
     let attPersons = [];
     let attAttendance = [];
+    let attPersonTimes = {}; // Firebase-stored default times per person key
 
     // Init attendance app
     window.attAppReady = () => {
@@ -281,12 +282,32 @@
         const curYear = now.getFullYear();
         ['reportMonth','masterMonth'].forEach(id => { const el = document.getElementById(id); if(el) el.value = curMonth; });
         ['reportYear','masterYear'].forEach(id => { const el = document.getElementById(id); if(el) el.value = curYear; });
+
+        // Set default in/out as 08:00/19:30 until a person is selected
+        document.getElementById('dailyIn').value = '08:00';
+        document.getElementById('dailyOut').value = '19:30';
+    };
+
+    // Load this person's default time into Entry tab
+    window.attLoadPersonDefaultTime = (name) => {
+        const person = attPersons.find(p => p.name === name);
+        if (!person) return;
+        const times = attPersonTimes[person.key] || {};
+        const defIn  = times.defIn  || '08:00';
+        const defOut = times.defOut || '19:30';
+        document.getElementById('dailyIn').value  = defIn;
+        document.getElementById('dailyOut').value = defOut;
     };
 
     onValue(ref(attDb, 'persons'), (snap) => {
         const d = snap.val();
         attPersons = d ? Object.entries(d).map(([key, name]) => ({ key, name })) : [];
         attUpdateLists();
+        attRenderSettingList();
+    });
+
+    onValue(ref(attDb, 'personTimes'), (snap) => {
+        attPersonTimes = snap.val() || {};
         attRenderSettingList();
     });
 
@@ -315,13 +336,39 @@
         const container = document.getElementById('pListDisplay');
         let html = "";
         attPersons.forEach(p => {
-            html += `<div class="person-row">
-                <span>${p.name}</span>
-                <button class="btn-del" onclick="attDeletePerson('${p.key}')">✕ કાઢો</button>
+            const times = attPersonTimes[p.key] || {};
+            const savedIn  = times.defIn  || '08:00';
+            const savedOut = times.defOut || '19:30';
+            html += `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:14px; font-weight:600; color:var(--text);">👤 ${p.name}</span>
+                    <button class="btn-del" onclick="attDeletePerson('${p.key}')">✕ કાઢો</button>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:110px;">
+                        <div style="font-size:10px; color:var(--text-muted); letter-spacing:1px; margin-bottom:3px;">IN TIME</div>
+                        <input type="time" value="${savedIn}"
+                            style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px;"
+                            onchange="attSavePersonTime('${p.key}', 'in', this.value)">
+                    </div>
+                    <div style="flex:1; min-width:110px;">
+                        <div style="font-size:10px; color:var(--text-muted); letter-spacing:1px; margin-bottom:3px;">OUT TIME</div>
+                        <input type="time" value="${savedOut}"
+                            style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px;"
+                            onchange="attSavePersonTime('${p.key}', 'out', this.value)">
+                    </div>
+                </div>
             </div>`;
         });
         container.innerHTML = html || "<span style='color:var(--text-muted)'>કોઈ નામ નથી.</span>";
     }
+
+    window.attSavePersonTime = (key, type, value) => {
+        // Save to Firebase so it persists permanently across devices and sessions
+        const updateObj = {};
+        updateObj[type === 'in' ? 'defIn' : 'defOut'] = value;
+        update(ref(attDb, `personTimes/${key}`), updateObj);
+    };
 
     window.attToggleLeaveMode = () => {
         const isL = document.getElementById('isLeave').checked;

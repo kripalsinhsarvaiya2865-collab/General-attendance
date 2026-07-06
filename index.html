@@ -82,8 +82,8 @@
         #attendanceApp tbody tr:hover { background: rgba(240,165,0,0.04); }
         .att-report-block { page-break-before: always; padding: 16px 0; border-top: 1px solid var(--border); }
         .att-report-block h3 { font-family: 'Rajdhani', sans-serif; color: var(--accent); letter-spacing: 1px; font-size: 15px; margin-bottom: 8px; }
-        .master-section { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
-        .master-section label { color: #c2410c; }
+        .master-section { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+        .master-section label { color: #1a56db; }
         .person-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); color: var(--text); font-size: 14px; }
         .person-row:last-child { border-bottom: none; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -191,12 +191,13 @@
                                 <input type="number" id="masterYear" value="2025" min="2020" max="2099" onchange="attShowReport()">
                             </div>
                         </div>
-                        <div style="font-size:11px; color:#c2410c; margin-top:6px; font-style:italic;">A + B બંનેનો ડેટા એક સાથે</div>
+                        <div style="font-size:11px; color:#1a56db; margin-top:6px; font-style:italic;">A + B બંનેનો ડેટા એક સાથે</div>
                     </div>
                     <input type="hidden" id="masterFrom"><input type="hidden" id="masterTo">
                     <button class="btn btn-dark" onclick="attDownloadPDF()" style="margin-top:10px;">📥 Download PDF</button>
                 </div>
             </div>
+            <div id="attMissingAlert" style="display:none;"></div>
             <div id="att_pdf_area">
                 <div id="summaryContainer"></div>
                 <div id="reportContainer"></div>
@@ -478,10 +479,29 @@
 
         document.getElementById('summaryContainer').innerHTML = "";
         document.getElementById('reportContainer').innerHTML = "";
+        const missingAlertEl = document.getElementById('attMissingAlert');
+        missingAlertEl.innerHTML = ""; missingAlertEl.style.display = "none";
         if (!sel) return;
 
+        // ---- Missing-entry gap detection ----
+        // Look only BETWEEN each employee's first and last recorded date in the selected range
+        // (dates after the last entry just mean attendance hasn't been filled yet — not a gap).
+        // Any date inside that span with no entry at all (no work, no leave, nothing) is a real gap.
+        const attDateRange = (df, dt) => {
+            const arr = []; let cur = new Date(df + 'T00:00:00'); const end = new Date(dt + 'T00:00:00');
+            while (cur <= end) { arr.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1); }
+            return arr;
+        };
+        const attComputeMissingDates = (data) => {
+            const datesSet = new Set(data.map(a => a.date));
+            const sortedDates = [...datesSet].sort();
+            if (sortedDates.length < 2) return [];
+            return attDateRange(sortedDates[0], sortedDates[sortedDates.length - 1]).filter(dt => !datesSet.has(dt));
+        };
+        const attFmtD = (d) => d.split('-').reverse().join('/');
+
         let names = (sel === "ALL") ? attPersons.map(p => p.name) : [sel];
-        let nData = []; let mData = [];
+        let nData = []; let mData = []; let gapRows = "";
 
         names.forEach(n => {
             const data = attAttendance.filter(a => a.name === n && (!from || a.date >= from) && (!to || a.date <= to)).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -489,12 +509,21 @@
                 let s = attCalcStats(data);
                 nData.push({ name: n, ...s });
                 attRenderDetailTable(n, data, s);
+                const missing = attComputeMissingDates(data);
+                if (missing.length) gapRows += `<div style="margin-bottom:6px;"><strong>${n}:</strong> ${missing.map(attFmtD).join(', ')}</div>`;
             }
             if (mFrom && mTo) {
                 const mD = attAttendance.filter(a => a.name === n && (a.date >= mFrom && a.date <= mTo));
                 if (mD.length > 0) mData.push({ name: n, ...attCalcStats(mD) });
             }
         });
+        if (gapRows) {
+            missingAlertEl.innerHTML = `<div class="card" style="border-left:4px solid #e74c3c; background:#fff5f5;">
+                <div style="font-weight:700; color:#e74c3c; letter-spacing:0.5px;">⚠️ Missing Entries (gaps within recorded dates)</div>
+                <div style="margin-top:8px; font-size:13px; color:#555;">${gapRows}</div>
+            </div>`;
+            missingAlertEl.style.display = "block";
+        }
         attRenderCombinedSummary(nData, mData);
     };
 
@@ -511,7 +540,7 @@
 
     function attRenderCombinedSummary(nData, mData) {
         let h = `<div style="margin-bottom:20px;">
-            <h2 style="text-align:center; font-family:'Rajdhani',sans-serif; color:#f0a500; letter-spacing:2px; margin-bottom:12px;">OPERATOR SUMMARY</h2>
+            <h2 style="text-align:center; font-family:'Rajdhani',sans-serif; color:#1a2744; letter-spacing:1.5px; margin-bottom:12px;">OPERATOR SUMMARY</h2>
             <table><thead><tr>
                 <th style="text-align:left;">Name</th>
                 <th>Hrs</th><th>Work Days</th><th>P.L</th><th>H.L</th><th>Total Leave</th>
@@ -520,8 +549,8 @@
             h += `<tr>
                 <td style="text-align:left; font-weight:600;">${s.name}</td>
                 <td><b>${s.hrs}</b></td><td>${s.wD}</td>
-                <td style="color:#e67e22;">${s.pL}</td>
-                <td style="color:#e74c3c;">${s.hL}</td>
+                <td>${s.pL}</td>
+                <td>${s.hL}</td>
                 <td><b>${s.totalL}</b></td>
             </tr>`;
         });
@@ -530,18 +559,18 @@
             const mMonthEl = document.getElementById('masterMonth');
             const mYearEl = document.getElementById('masterYear');
             const mLabel = mMonthEl ? mMonthEl.options[mMonthEl.selectedIndex].text + ' ' + (mYearEl ? mYearEl.value : '') + ' (A + B)' : '';
-            h += `<h2 style="margin-top:20px; text-align:center; font-family:'Rajdhani',sans-serif; color:#ff6b35; letter-spacing:2px; margin-bottom:12px;">MASTER SUMMARY · ${mLabel}</h2>
-                <table><thead><tr style="background:#e67e22 !important;">
-                    <th style="text-align:left; color:white;">Name</th>
-                    <th style="color:white;">Hrs</th><th style="color:white;">Work Days</th>
-                    <th style="color:white;">P.L</th><th style="color:white;">H.L</th><th style="color:white;">Total Leave</th>
+            h += `<h2 style="margin-top:20px; text-align:center; font-family:'Rajdhani',sans-serif; color:#1a56db; letter-spacing:1.5px; margin-bottom:12px;">MASTER SUMMARY · ${mLabel}</h2>
+                <table><thead><tr>
+                    <th style="text-align:left;">Name</th>
+                    <th>Hrs</th><th>Work Days</th>
+                    <th>P.L</th><th>H.L</th><th>Total Leave</th>
                 </tr></thead><tbody>`;
             mData.forEach(s => {
                 h += `<tr>
                     <td style="text-align:left; font-weight:600;">${s.name}</td>
                     <td><b>${s.hrs}</b></td><td>${s.wD}</td>
-                    <td style="color:#e67e22;">${s.pL}</td>
-                    <td style="color:#e74c3c;">${s.hL}</td>
+                    <td>${s.pL}</td>
+                    <td>${s.hL}</td>
                     <td><b>${s.totalL}</b></td>
                 </tr>`;
             });
@@ -567,16 +596,16 @@
             const isLeave = a.leaveType && a.leaveType !== "";
             const leaveLabel = a.leaveType === "Personal" ? "Personal Leave" : a.leaveType === "Public" ? "Public Holiday" : "";
             const remarkDisplay = isLeave
-                ? `<span style="color:${a.leaveType === "Personal" ? "#e67e22" : "#e74c3c"}; font-weight:bold;">${leaveLabel}</span>${a.item ? ' · ' + a.item : ''}`
+                ? `<span style="color:${a.leaveType === "Personal" ? "#1a56db" : "#64748b"}; font-weight:bold;">${leaveLabel}</span>${a.item ? ' · ' + a.item : ''}`
                 : (a.item || '');
-            const rowStyle = isLeave ? `background:${a.leaveType === "Personal" ? "rgba(230,126,34,0.08)" : "rgba(231,76,60,0.08)"};` : "";
+            const rowStyle = isLeave ? `background:${a.leaveType === "Personal" ? "rgba(26,86,219,0.06)" : "rgba(100,116,139,0.08)"};` : "";
 
             h += `<tr style="${rowStyle}">
                 <td style="font-weight:600;">${dateStr}</td>
                 <td style="text-align:left;">${remarkDisplay}</td>
                 <td>${a.tin}</td><td>${a.tout}</td>
-                <td style="color:#e74c3c;">${a.breakHrs || 0}</td>
-                <td><b style="color:#2ecc71;">${a.hours}</b></td>
+                <td>${a.breakHrs || 0}</td>
+                <td><b style="color:#1a2744;">${a.hours}</b></td>
                 <td class="att-del-col">
                     <button class="btn-edit" onclick="attEditEntry('${a.id}')">✏️</button>
                     <button class="btn-del" onclick="attDeleteEntry('${a.id}')">✕</button>
@@ -638,7 +667,7 @@
 
         // If master NOT selected, remove master summary section from clone
         if (!masterSelected) {
-            const masterH2 = clone.querySelector('h2[style*="ff6b35"], h2[style*="MASTER"]');
+            const masterH2 = clone.querySelector('h2[style*="1a56db"], h2[style*="MASTER"]');
             if (masterH2) {
                 let el = masterH2;
                 while (el && el.tagName !== 'TABLE') { const nx = el.nextElementSibling; el.remove(); el = nx; }
@@ -650,40 +679,72 @@
         clone.querySelectorAll('tr[style]').forEach(tr => {
             const bg = tr.style.background || tr.style.backgroundColor;
             if (bg && bg.includes('rgba')) {
-                tr.style.background = bg.includes('230,126') ? '#fff8ee' : '#fff0f0';
+                tr.style.background = bg.includes('26,86,219') ? '#eef3fd' : '#f1f3f6';
             }
         });
 
+        const today = new Date();
+        const genDate = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
+        const masterMonthEl = document.getElementById('masterMonth');
+        const masterYearEl  = document.getElementById('masterYear');
+        const leaveBreakLabel = masterSelected && masterMonthEl
+            ? `${masterMonthEl.options[masterMonthEl.selectedIndex].text} ${masterYearEl ? masterYearEl.value : ''} - ${abLabel}`
+            : periodLabel;
+
         const element = document.createElement('div');
-        element.style.cssText = "font-family: 'Segoe UI', Arial, sans-serif; color: #000; background: white; width: 100%;";
+        element.style.cssText = "font-family: 'Segoe UI', Arial, sans-serif; color: #232323; background: white; width: 100%;";
         element.innerHTML = `
-            <div style="text-align:center; padding:18px 0 12px; border-bottom:3px solid #2c3e50; margin-bottom:16px;">
-                <h1 style="margin:0; font-size:20px; color:#2c3e50; letter-spacing:2px; font-family:'Rajdhani',sans-serif;">DRISHTI FLANGES &amp; METAL</h1>
-                <p style="margin:4px 0 0; color:#7f8c8d; font-size:11px; letter-spacing:1.5px; text-transform:uppercase;">Attendance Report &nbsp;·&nbsp; ${periodLabel}</p>
+            <div style="padding:0 0 10px; margin-bottom:12px;">
+                <h1 style="margin:0; font-size:19px; color:#191919; letter-spacing:0.4px; font-family:'Segoe UI', Arial, sans-serif; font-weight:700;">DRISHTI FLANGES &amp; METAL</h1>
+                <p style="margin:3px 0 8px; color:#828282; font-size:10.5px;">Employee Attendance Report</p>
+                <div style="border-top:1px solid #dedede; margin:0 0 8px;"></div>
+                <p style="margin:0; font-size:9.5px; line-height:1.6;">
+                    <span style="color:#9b9b9b; font-weight:700;">PERIOD&nbsp;&nbsp;</span><span style="color:#373737; font-weight:400;">${periodLabel}</span>
+                    <span style="color:#cccccc;">&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
+                    <span style="color:#9b9b9b; font-weight:700;">LEAVE/BREAK&nbsp;&nbsp;</span><span style="color:#373737; font-weight:400;">${leaveBreakLabel}</span>
+                    <span style="color:#cccccc;">&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
+                    <span style="color:#9b9b9b; font-weight:700;">GENERATED&nbsp;&nbsp;</span><span style="color:#373737; font-weight:400;">${genDate}</span>
+                </p>
             </div>
             <style>
                 * { box-sizing: border-box; }
-                table { width:100%; border-collapse:collapse; margin:6px 0 10px; font-size:9.5px; table-layout:fixed; }
-                th { background:#2c3e50; color:white; padding:5px 4px; text-align:center; border:1px solid #555; font-size:9px; letter-spacing:0.4px; font-weight:700; }
-                td { border:1px solid #bbb; padding:4px 3px; text-align:center; color:#000; font-size:9px; word-break:break-word; }
+                table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:11px; table-layout:fixed; font-family:'Segoe UI', Arial, sans-serif; }
+                th { background:#ececec; color:#282828; padding:9px 6px; text-align:center; border:1px solid #d2d2d2; font-size:10.5px; letter-spacing:0.3px; font-weight:700; }
+                td { border:1px solid #e1e1e1; padding:8px 6px; text-align:center; color:#232323; font-size:11px; word-break:break-word; }
                 td:nth-child(2) { text-align:left; }
                 th:nth-child(2) { text-align:left; }
-                .att-report-block { page-break-before:always; padding:10px 0 4px; border-top:2px solid #2c3e50; margin-top:10px; }
-                .att-report-block h3 { font-size:12px; color:#2c3e50; margin-bottom:4px; font-family:'Segoe UI',sans-serif; }
-                .att-report-block h3 span { font-size:9px; color:#666; font-weight:400; }
-                h2 { font-size:13px; text-align:center; margin:12px 0 6px; letter-spacing:1px; }
-                tbody tr:nth-child(even) { background: #f8f8f8; }
+                .att-report-block { page-break-before:always; padding:14px 0 4px; border-top:1px solid #e6e6e6; margin-top:10px; }
+                .att-report-block::before { content:"DRISHTI FLANGES AND METAL"; display:block; font-family:'Segoe UI', Arial, sans-serif; font-size:15px; font-weight:700; color:#191919; letter-spacing:0.3px; padding-bottom:6px; margin-bottom:10px; border-bottom:1px solid #dedede; }
+                .att-report-block h3 { font-size:13px; color:#1a202c; margin-bottom:10px; font-family:'Segoe UI', Arial, sans-serif; font-weight:700; }
+                .att-report-block h3 span { font-size:10.5px; color:#828282; font-weight:400; margin-left:8px; }
+                h2 { font-size:13px; text-align:center; margin:14px 0 8px; letter-spacing:0.4px; color:#191919; font-weight:700; }
+                tbody tr:nth-child(even) { background: #fafafa; }
                 .summary-page { margin-bottom:12px; }
             </style>
         ` + clone.innerHTML;
 
         const opt = {
-            margin:     [8, 6, 8, 6],
+            margin:     [8, 6, 12, 6],
             filename:   `Attendance_${abLabel}_${monthName}_${rYear}.pdf`,
             html2canvas: { scale: 2.5, useCORS: true, logging: false },
             jsPDF:      { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
-        html2pdf().set(opt).from(element).save();
+        html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
+            const totalPages = pdf.internal.getNumberOfPages();
+            const w = pdf.internal.pageSize.getWidth();
+            const h = pdf.internal.pageSize.getHeight();
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i);
+                pdf.setDrawColor(230, 230, 230);
+                pdf.setLineWidth(0.2);
+                pdf.line(6, h - 10, w - 6, h - 10);
+                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(7.5);
+                pdf.setTextColor(140, 140, 140);
+                pdf.text('DRISHTI FLANGES AND METAL', 6, h - 6);
+                pdf.text(`Page ${i} of ${totalPages}`, w - 6, h - 6, { align: 'right' });
+            }
+        }).save();
     };
 
     window.attDeleteEntry = (id) => {

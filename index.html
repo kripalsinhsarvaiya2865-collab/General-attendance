@@ -139,6 +139,23 @@
                 <input type="text" id="dailyRemark" placeholder="નોંધ લખો...">
                 <button class="btn btn-green" onclick="attSaveDaily()">✓ સેવ કરો</button>
             </div>
+
+            <div class="card">
+                <div class="card-title">📦 બલ્ક એન્ટ્રી</div>
+                <label>કર્મચારી નામ</label>
+                <select id="bulkName" class="att-name-list" onchange="attLoadBulkDefaultTime(this.value)"></select>
+                <label>તારીખથી</label>
+                <input type="date" id="bulkFrom">
+                <label>તારીખ સુધી</label>
+                <input type="date" id="bulkTo">
+                <label>In Time</label>
+                <input type="time" id="bulkIn" value="08:00">
+                <label>Out Time</label>
+                <input type="time" id="bulkOut" value="19:30">
+                <label>બ્રેક (કલાકમાં)</label>
+                <input type="number" id="bulkBreak" step="0.1" value="0">
+                <button class="btn btn-orange" onclick="attSaveBulk()">✓ બલ્ક સેવ કરો</button>
+            </div>
         </div>
 
         <!-- REPORT TAB -->
@@ -226,10 +243,23 @@
             <input type="hidden" id="editId">
             <label>તારીખ</label>
             <input type="date" id="editDate">
-            <label>In Time</label>
-            <input type="time" id="editIn">
-            <label>Out Time</label>
-            <input type="time" id="editOut">
+            <div class="leave-box">
+                <input type="checkbox" id="editIsLeave" onchange="attToggleEditLeaveMode()">
+                <label for="editIsLeave">🏖️ રજા છે?</label>
+                <select id="editLeaveType" style="display:none;">
+                    <option value="Personal">Personal Leave</option>
+                    <option value="Public">Public Holiday</option>
+                </select>
+                <input type="number" id="editLeaveHrs" placeholder="કલાક" style="display:none; width:80px;">
+            </div>
+            <div id="editTimeBox">
+                <label>In Time</label>
+                <input type="time" id="editIn">
+                <label>Out Time</label>
+                <input type="time" id="editOut">
+                <label>બ્રેક (કલાકમાં)</label>
+                <input type="number" id="editBreak" step="0.1" value="0">
+            </div>
             <div class="modal-actions">
                 <button class="btn btn-green" onclick="attSaveEdit()">✓ સેવ</button>
                 <button class="btn btn-dark" onclick="attCloseEditModal()">✕ રદ</button>
@@ -298,6 +328,17 @@
         const defOut = times.defOut || '19:30';
         document.getElementById('dailyIn').value  = defIn;
         document.getElementById('dailyOut').value = defOut;
+    };
+
+    // Load this person's default time into Bulk Entry tab
+    window.attLoadBulkDefaultTime = (name) => {
+        const person = attPersons.find(p => p.name === name);
+        if (!person) return;
+        const times = attPersonTimes[person.key] || {};
+        const defIn  = times.defIn  || '08:00';
+        const defOut = times.defOut || '19:30';
+        document.getElementById('bulkIn').value  = defIn;
+        document.getElementById('bulkOut').value = defOut;
     };
 
     onValue(ref(attDb, 'persons'), (snap) => {
@@ -755,28 +796,48 @@
         }
     };
 
+    window.attToggleEditLeaveMode = () => {
+        const isL = document.getElementById('editIsLeave').checked;
+        document.getElementById('editTimeBox').style.display = isL ? 'none' : 'block';
+        document.getElementById('editLeaveType').style.display = isL ? 'inline-block' : 'none';
+        document.getElementById('editLeaveHrs').style.display = isL ? 'inline-block' : 'none';
+    };
+
     window.attEditEntry = (id) => {
         const entry = attAttendance.find(a => a.id === id);
         if (!entry) return;
+        const isLeave = !!(entry.leaveType && entry.leaveType !== "");
         document.getElementById('editId').value = id;
         document.getElementById('editDate').value = entry.date;
+        document.getElementById('editIsLeave').checked = isLeave;
+        document.getElementById('editLeaveType').value = entry.leaveType || 'Personal';
+        document.getElementById('editLeaveHrs').value = isLeave ? (entry.hours || '') : '';
         document.getElementById('editIn').value = entry.tin !== '--' ? entry.tin : '';
         document.getElementById('editOut').value = entry.tout !== '--' ? entry.tout : '';
+        document.getElementById('editBreak').value = entry.breakHrs || 0;
+        attToggleEditLeaveMode();
         document.getElementById('attEditModal').classList.add('open');
     };
 
     window.attSaveEdit = async () => {
         const id = document.getElementById('editId').value;
         const date = document.getElementById('editDate').value;
-        const tin = document.getElementById('editIn').value || '--';
-        const tout = document.getElementById('editOut').value || '--';
         if (!date) return alert("તારીખ ભરો!");
 
-        const entry = attAttendance.find(a => a.id === id);
-        const bHrs = parseFloat(entry?.breakHrs || 0);
-        const hrs = (tin !== '--' && tout !== '--') ? (attCalcHours(tin, tout) - bHrs).toFixed(1) : entry?.hours || 0;
+        const isL = document.getElementById('editIsLeave').checked;
+        let tin = "--", tout = "--", bHrs = 0, hrs = 0, lType = "";
 
-        await update(ref(attDb, `attendance/${id}`), { date, tin, tout, hours: hrs });
+        if (isL) {
+            lType = document.getElementById('editLeaveType').value;
+            hrs = parseFloat(document.getElementById('editLeaveHrs').value || 0);
+        } else {
+            tin = document.getElementById('editIn').value || '--';
+            tout = document.getElementById('editOut').value || '--';
+            bHrs = parseFloat(document.getElementById('editBreak').value || 0);
+            hrs = (tin !== '--' && tout !== '--') ? (attCalcHours(tin, tout) - bHrs).toFixed(1) : 0;
+        }
+
+        await update(ref(attDb, `attendance/${id}`), { date, tin, tout, breakHrs: bHrs, hours: hrs, leaveType: lType });
         document.getElementById('attEditModal').classList.remove('open');
         alert("✓ સુધારો સેવ થઈ ગયો!");
         attShowReport();

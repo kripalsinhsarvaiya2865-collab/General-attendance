@@ -1,864 +1,535 @@
 <!DOCTYPE html>
 <html lang="gu">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="color-scheme" content="light only">
-    <title>Drishti - Attendance</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #f4f6fb;
-            --surface: #ffffff;
-            --surface2: #f0f3fa;
-            --border: #dde3f0;
-            --accent: #1a56db;
-            --accent2: #e67e22;
-            --text: #1a202c;
-            --text-muted: #6b7280;
-            --green: #16a34a;
-            --red: #e74c3c;
-            --blue: #1a56db;
-            --card-shadow: 0 2px 16px rgba(0,0,0,0.07);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; color-scheme: light only; }
-        @media (prefers-color-scheme: dark) {
-            :root { --bg: #f4f6fb !important; --surface: #ffffff !important; --surface2: #f0f3fa !important; --border: #dde3f0 !important; --text: #1a202c !important; --text-muted: #6b7280 !important; }
-            body { background: #f4f6fb !important; color: #1a202c !important; }
-            input, select { background: #f0f3fa !important; color: #1a202c !important; }
-        }
-        body { font-family: 'Noto Sans Gujarati', 'Segoe UI', 'Rajdhani', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#101826">
+<title>Drishti Music</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#101826; --panel:#182235; --line:#2a3750; --text:#eef1f6; --muted:#93a0b8; --brass:#d9a441; --brass-dim:#8a6a2b; --red:#e26d5c; }
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
+body { font-family:'Noto Sans Gujarati','Segoe UI',sans-serif; background:var(--bg); color:var(--text); max-width:520px; margin:0 auto; display:flex; flex-direction:column; height:100dvh; padding-top:env(safe-area-inset-top); }
+.tab { display:none; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.tab.active { display:block; }
+h2 { font-size:17px; font-weight:700; padding:16px 22px 10px; }
 
-        /* ATTENDANCE APP STYLES */
-        #attendanceApp { padding-bottom: 75px; min-height: 100vh; background: var(--bg); }
-        .att-header { background: linear-gradient(135deg, #1a56db 0%, #1e3a8a 100%); border-bottom: 2px solid #1a56db; padding: 12px 16px; position: sticky; top: 0; z-index: 200; display: flex; justify-content: space-between; align-items: center; }
-        .att-header-logo { display: flex; align-items: center; gap: 10px; }
-        .att-header-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        .att-header-title .main { font-family: 'Rajdhani', sans-serif; font-size: 17px; font-weight: 700; color: #ffffff; letter-spacing: 1px; }
-        .att-header-title .sub { font-size: 10px; color: rgba(255,255,255,0.65); letter-spacing: 2px; text-transform: uppercase; }
-        .att-header-right { display: flex; gap: 8px; align-items: center; }
-        .refresh-btn { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; transition: all 0.2s; }
-        .refresh-btn:hover { background: rgba(255,255,255,0.3); }
-        .content { padding: 14px; }
-        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 14px; box-shadow: var(--card-shadow); animation: fadeUp 0.3s ease both; }
-        .card-title { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-        #attendanceApp label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 14px; margin-bottom: 5px; }
-        #attendanceApp input, #attendanceApp select { width: 100%; padding: 11px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px; font-family: inherit; transition: border-color 0.2s; -webkit-appearance: none; }
-        #attendanceApp input:focus, #attendanceApp select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(240,165,0,0.1); }
-        #attendanceApp input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
-        #attendanceApp select option { background: var(--surface2); color: var(--text); }
-        .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 1px; cursor: pointer; margin-top: 14px; transition: all 0.2s; text-transform: uppercase; }
-        .btn-green { background: linear-gradient(135deg, #27ae60, #2ecc71); color: #fff; }
-        .btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(46,204,113,0.3); }
-        .btn-orange { background: linear-gradient(135deg, #e67e22, #f39c12); color: #fff; }
-        .btn-dark { background: linear-gradient(135deg, #2c3e50, #34495e); color: var(--accent); border: 1px solid var(--accent); }
-        .btn-del { background: var(--red); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; font-family: 'Rajdhani', sans-serif; font-weight: 700; width: auto; transition: opacity 0.2s; }
-        .btn-del:hover { opacity: 0.8; }
-        .btn-edit { background: var(--accent); color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; font-family: 'Rajdhani', sans-serif; font-weight: 700; width: auto; transition: opacity 0.2s; margin-right: 4px; }
-        .btn-edit:hover { opacity: 0.8; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 999; align-items: center; justify-content: center; }
-        .modal-overlay.open { display: flex; }
-        .modal-box { background: var(--surface); border-radius: 16px; padding: 24px 20px; width: 90%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); animation: fadeUp 0.25s ease both; }
-        .modal-title { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
-        .modal-actions { display: flex; gap: 10px; margin-top: 16px; }
-        .modal-actions button { flex: 1; margin-top: 0; }
-        .date-container { display: flex; align-items: center; gap: 8px; }
-        .date-arrow { width: 42px; height: 42px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--accent); font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; }
-        .date-arrow:hover { background: var(--accent); color: #000; }
-        .date-container input { flex: 1; }
-        .leave-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; margin-top: 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-        .leave-box label { margin: 0; color: #1a56db; font-size: 12px; letter-spacing: 1px; }
-        .leave-box select, .leave-box input[type="number"] { width: auto; padding: 8px 10px; font-size: 13px; background: var(--surface); }
-        .att-tab-content { display: none; }
-        .att-active-tab { display: block; }
-        .att-bottom-nav { position: fixed; bottom: 0; width: 100%; background: #ffffff; border-top: 1px solid var(--border); display: flex; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index: 200; }
-        .att-nav-item { flex: 1; text-align: center; padding: 9px 4px; font-size: 10px; cursor: pointer; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; transition: all 0.2s; border-top: 2px solid transparent; font-family: 'Rajdhani', sans-serif; font-weight: 600; }
-        .att-nav-item.active { color: var(--accent); border-top-color: var(--accent); }
-        .att-nav-item span { display: block; font-size: 20px; margin-bottom: 2px; }
-        #attendanceApp table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; table-layout: fixed; }
-        #attendanceApp th { background: var(--surface2); color: var(--accent); font-family: 'Rajdhani', sans-serif; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; padding: 9px 6px; border: 1px solid var(--border); font-weight: 700; }
-        #attendanceApp td { border: 1px solid var(--border); padding: 8px 5px; text-align: center; word-wrap: break-word; color: var(--text); font-size: 12px; }
-        #attendanceApp tbody tr:hover { background: rgba(240,165,0,0.04); }
-        .att-report-block { page-break-before: always; padding: 16px 0; border-top: 1px solid var(--border); }
-        .att-report-block h3 { font-family: 'Rajdhani', sans-serif; color: var(--accent); letter-spacing: 1px; font-size: 15px; margin-bottom: 8px; }
-        .master-section { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
-        .master-section label { color: #1a56db; }
-        .person-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); color: var(--text); font-size: 14px; }
-        .person-row:last-child { border-bottom: none; }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    </style>
+/* PLAY TAB */
+.player { padding:22px 22px 8px; text-align:center; }
+.flange { width:168px; height:168px; margin:4px auto 20px; border-radius:50%;
+  background: radial-gradient(circle at 50% 50%, var(--bg) 0 14%, transparent 14.5%), radial-gradient(circle at 50% 50%, transparent 0 58%, var(--brass-dim) 58.5% 60%, transparent 60.5%), conic-gradient(from 0deg,#3b4960,#6c7b95,#3b4960,#7e8da7,#3b4960,#6c7b95,#3b4960);
+  position:relative; animation:spin 9s linear infinite; animation-play-state:paused; box-shadow:0 0 0 4px var(--panel),0 10px 30px rgba(0,0,0,.45); }
+.flange.on { animation-play-state:running; }
+.flange i { position:absolute; width:14px; height:14px; border-radius:50%; background:var(--bg); box-shadow:inset 0 0 0 2px var(--brass-dim); left:calc(50% - 7px); top:calc(50% - 7px); transform:rotate(calc(var(--a)*1deg)) translateY(-62px); }
+@keyframes spin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .flange { animation:none; } }
+#title { font-size:19px; font-weight:700; line-height:1.35; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#artist { font-size:13px; color:var(--muted); margin-top:3px; min-height:19px; }
+.seek { margin-top:18px; }
+input[type=range] { -webkit-appearance:none; appearance:none; width:100%; height:28px; background:transparent; }
+input[type=range]::-webkit-slider-runnable-track { height:4px; border-radius:2px; background:linear-gradient(to right,var(--brass) var(--p,0%),var(--line) var(--p,0%)); }
+input[type=range]::-moz-range-track { height:4px; border-radius:2px; background:var(--line); }
+input[type=range]::-moz-range-progress { height:4px; border-radius:2px; background:var(--brass); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; margin-top:-6px; border-radius:50%; background:var(--brass); border:0; }
+input[type=range]::-moz-range-thumb { width:16px; height:16px; border-radius:50%; background:var(--brass); border:0; }
+.times { display:flex; justify-content:space-between; font-family:'Rajdhani',sans-serif; font-weight:500; font-size:14px; color:var(--muted); margin-top:-2px; }
+.controls { display:flex; align-items:center; justify-content:center; gap:26px; margin:12px 0 14px; }
+.controls button { background:none; border:0; color:var(--text); cursor:pointer; width:52px; height:52px; display:grid; place-items:center; border-radius:50%; }
+.controls svg { width:26px; height:26px; fill:currentColor; }
+.controls #play { width:68px; height:68px; background:var(--brass); color:#1b1405; }
+.controls #play svg { width:30px; height:30px; }
+button:focus-visible, input:focus-visible { outline:2px solid var(--brass); outline-offset:2px; }
+.controls button:active { transform:scale(.94); }
+
+/* ALL SONGS TAB */
+#list { list-style:none; padding:0 12px 16px; }
+#list li { display:flex; align-items:center; gap:8px; padding:6px 4px 6px 10px; border-radius:10px; }
+#list li.cur { background:var(--panel); box-shadow:inset 3px 0 0 var(--brass); }
+#list .main { flex:1; min-width:0; display:flex; align-items:center; gap:12px; padding:7px 0; cursor:pointer; }
+#list .n { width:22px; text-align:center; font-family:'Rajdhani',sans-serif; font-size:14px; color:var(--muted); flex-shrink:0; }
+#list li.cur .n { color:var(--brass); }
+#list .t { min-width:0; }
+#list .t b { display:block; font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#list .t span { display:block; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mv { display:flex; gap:2px; flex-shrink:0; }
+.mv button { width:40px; height:40px; background:none; border:0; border-radius:8px; color:var(--muted); cursor:pointer; display:grid; place-items:center; }
+.mv button:active { background:var(--line); color:var(--text); }
+.mv button:disabled { opacity:.25; }
+.mv svg { width:20px; height:20px; fill:currentColor; }
+.empty { padding:30px 22px; text-align:center; color:var(--muted); font-size:14px; line-height:1.7; }
+#count { padding:0 22px 8px; font-size:13px; color:var(--muted); }
+
+/* UPLOAD TAB */
+.box { margin:0 16px 16px; padding:16px; background:var(--panel); border:1px solid var(--line); border-radius:12px; }
+.box h3 { font-size:14px; font-weight:700; margin-bottom:4px; }
+.box p { font-size:12px; color:var(--muted); line-height:1.6; }
+.box label { display:block; font-size:12px; color:var(--muted); margin:12px 0 5px; }
+.box input[type=text], .box input[type=url] { width:100%; padding:11px 12px; background:var(--bg); border:1px solid var(--line); border-radius:8px; color:var(--text); font:inherit; font-size:14px; }
+.box input[type=file] { width:100%; font-size:13px; color:var(--muted); }
+.box input[type=file]::file-selector-button { padding:9px 14px; margin-right:10px; border:0; border-radius:8px; background:var(--line); color:var(--text); font:inherit; font-size:13px; cursor:pointer; }
+.go { width:100%; margin-top:16px; padding:13px; border:0; border-radius:10px; background:var(--brass); color:#1b1405; font:inherit; font-weight:700; font-size:15px; cursor:pointer; }
+.go:disabled { opacity:.5; }
+.prog { height:6px; background:var(--line); border-radius:3px; margin-top:14px; overflow:hidden; display:none; }
+.prog div { height:100%; width:0; background:var(--brass); transition:width .15s; }
+#upStatus { font-size:12px; color:var(--muted); margin-top:8px; min-height:18px; }
+
+/* MINI PLAYER + NAV */
+#mini { display:none; align-items:center; gap:10px; padding:8px 12px 8px 18px; background:var(--panel); border-top:1px solid var(--line); }
+#mini.show { display:flex; }
+#mini .mt { flex:1; min-width:0; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#mini button { width:40px; height:40px; background:none; border:0; color:var(--text); display:grid; place-items:center; cursor:pointer; }
+#mini svg { width:22px; height:22px; fill:currentColor; }
+nav { display:flex; border-top:1px solid var(--line); background:var(--bg); padding-bottom:env(safe-area-inset-bottom); }
+nav button { flex:1; background:none; border:0; color:var(--muted); font:inherit; font-size:11px; padding:9px 4px 8px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; border-top:2px solid transparent; margin-top:-1px; }
+nav button svg { width:22px; height:22px; fill:currentColor; }
+nav button.active { color:var(--brass); border-top-color:var(--brass); }
+.dir { display:flex; align-items:center; gap:8px; padding:10px 0; border-top:1px solid var(--line); font-size:13px; }
+.dir .dn { flex:1; min-width:0; } .dir .dn b { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .dir .dn span { color:var(--muted); font-size:12px; }
+.sm { padding:8px 11px; border:0; border-radius:8px; background:var(--line); color:var(--text); font:inherit; font-size:12px; cursor:pointer; flex-shrink:0; }
+.sm.hl { background:var(--brass); color:#1b1405; font-weight:700; }
+#permBar { display:none; margin:0 16px 10px; padding:12px 14px; background:var(--panel); border:1px solid var(--brass-dim); border-radius:10px; font-size:13px; line-height:1.6; }
+#permBar.show { display:block; } #permBar button { margin-top:8px; }
+#toast { position:fixed; left:50%; bottom:calc(130px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--panel); border:1px solid var(--line); color:var(--text); padding:9px 16px; border-radius:10px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90%; text-align:center; }
+#toast.show { opacity:1; }
+</style>
 </head>
 <body>
 
-<div id="attendanceApp">
-    <div class="att-header">
-        <div class="att-header-logo">
-            <div class="att-header-icon">👥</div>
-            <div class="att-header-title">
-                <div class="main">Attendance</div>
-                <div class="sub">Drishti Flanges & Metal</div>
-            </div>
-        </div>
-        <div class="att-header-right">
-            <div class="refresh-btn" onclick="location.reload()">🔄</div>
-        </div>
+<!-- 1. PLAY -->
+<section class="tab active" id="tab-play">
+  <div class="player">
+    <div class="flange" id="flange"></div>
+    <div id="title">ગીતો લોડ થઈ રહ્યા છે…</div>
+    <div id="artist"></div>
+    <div class="seek">
+      <input type="range" id="seek" min="0" max="100" value="0" step="0.1" aria-label="ગીતની પ્રગતિ">
+      <div class="times"><span id="cur">0:00</span><span id="dur">0:00</span></div>
     </div>
-
-    <div class="content">
-        <!-- ENTRY TAB -->
-        <div id="att_entry" class="att-tab-content att-active-tab">
-            <div class="card">
-                <div class="card-title">📝 રોજિંદી એન્ટ્રી</div>
-                <label>તારીખ</label>
-                <div class="date-container">
-                    <button class="date-arrow" onclick="attChangeDate(-1)">‹</button>
-                    <input type="date" id="dailyDate">
-                    <button class="date-arrow" onclick="attChangeDate(1)">›</button>
-                </div>
-                <label>કર્મચારી નામ</label>
-                <select id="dailyName" class="att-name-list" onchange="attLoadPersonDefaultTime(this.value)"></select>
-                <div id="dailyTimeBox">
-                    <label>In Time</label>
-                    <input type="time" id="dailyIn" value="08:00">
-                    <label>Out Time</label>
-                    <input type="time" id="dailyOut" value="19:30">
-                    <label>બ્રેક (કલાકમાં)</label>
-                    <input type="number" id="dailyBreak" step="0.1" value="0">
-                </div>
-                <div class="leave-box">
-                    <input type="checkbox" id="isLeave" onchange="attToggleLeaveMode()">
-                    <label for="isLeave">🏖️ રજા છે?</label>
-                    <select id="leaveType" style="display:none;">
-                        <option value="Personal">Personal Leave</option>
-                        <option value="Public">Public Holiday</option>
-                    </select>
-                    <input type="number" id="leaveHrs" placeholder="કલાક" style="display:none; width:80px;">
-                </div>
-                <label>વિગત / નોંધ</label>
-                <input type="text" id="dailyRemark" placeholder="નોંધ લખો...">
-                <button class="btn btn-green" onclick="attSaveDaily()">✓ સેવ કરો</button>
-            </div>
-
-            <div class="card">
-                <div class="card-title">📦 બલ્ક એન્ટ્રી</div>
-                <label>કર્મચારી નામ</label>
-                <select id="bulkName" class="att-name-list" onchange="attLoadBulkDefaultTime(this.value)"></select>
-                <label>તારીખથી</label>
-                <input type="date" id="bulkFrom">
-                <label>તારીખ સુધી</label>
-                <input type="date" id="bulkTo">
-                <label>In Time</label>
-                <input type="time" id="bulkIn" value="08:00">
-                <label>Out Time</label>
-                <input type="time" id="bulkOut" value="19:30">
-                <label>બ્રેક (કલાકમાં)</label>
-                <input type="number" id="bulkBreak" step="0.1" value="0">
-                <button class="btn btn-orange" onclick="attSaveBulk()">✓ બલ્ક સેવ કરો</button>
-            </div>
-        </div>
-
-        <!-- REPORT TAB -->
-        <div id="att_report" class="att-tab-content">
-            <div class="card">
-                <div class="card-title print-hide">📊 રિપોર્ટ</div>
-                <div class="print-hide">
-                    <label>કર્મચારી પસંદ કરો</label>
-                    <select id="reportName" class="att-name-list" onchange="attShowReport()"></select>
-                    <div style="display:flex; gap:8px; align-items:flex-end; margin-top:6px;">
-                        <div style="flex:2;">
-                            <label>📅 રિપોર્ટ મહિનો</label>
-                            <select id="reportMonth" onchange="attShowReport()">
-                                <option value="01">જાન્યુ</option><option value="02">ફેબ્રુ</option>
-                                <option value="03">માર્ચ</option><option value="04">એપ્રિ</option>
-                                <option value="05">મે</option><option value="06">જૂન</option>
-                                <option value="07">જુલા</option><option value="08">ઓગ</option>
-                                <option value="09">સપ્ટ</option><option value="10">ઓક્ટ</option>
-                                <option value="11">નવે</option><option value="12">ડિસે</option>
-                            </select>
-                        </div>
-                        <div style="flex:1.5;">
-                            <label>📆 વર્ષ</label>
-                            <input type="number" id="reportYear" value="2025" min="2020" max="2099" onchange="attShowReport()">
-                        </div>
-                        <div style="flex:1;">
-                            <label>A / B</label>
-                            <select id="reportAB" onchange="attShowReport()">
-                                <option value="A">A</option>
-                                <option value="B">B</option>
-                            </select>
-                        </div>
-                    </div>
-                    <input type="hidden" id="reportFrom"><input type="hidden" id="reportTo">
-                    <div class="master-section" style="margin-top:10px;">
-                        <div style="display:flex; gap:8px; align-items:flex-end;">
-                            <div style="flex:2;">
-                                <label>🔶 માસ્ટર મહિનો</label>
-                                <select id="masterMonth" onchange="attShowReport()">
-                                    <option value="01">જાન્યુ</option><option value="02">ફેબ્રુ</option>
-                                    <option value="03">માર્ચ</option><option value="04">એપ્રિ</option>
-                                    <option value="05">મે</option><option value="06">જૂન</option>
-                                    <option value="07">જુલા</option><option value="08">ઓગ</option>
-                                    <option value="09">સપ્ટ</option><option value="10">ઓક્ટ</option>
-                                    <option value="11">નવે</option><option value="12">ડિસે</option>
-                                </select>
-                            </div>
-                            <div style="flex:1.5;">
-                                <label>📆 વર્ષ</label>
-                                <input type="number" id="masterYear" value="2025" min="2020" max="2099" onchange="attShowReport()">
-                            </div>
-                        </div>
-                        <div style="font-size:11px; color:#1a56db; margin-top:6px; font-style:italic;">A + B બંનેનો ડેટા એક સાથે</div>
-                    </div>
-                    <input type="hidden" id="masterFrom"><input type="hidden" id="masterTo">
-                    <button class="btn btn-dark" onclick="attDownloadPDF()" style="margin-top:10px;">📥 Download PDF</button>
-                </div>
-            </div>
-            <div id="attMissingAlert" style="display:none;"></div>
-            <div id="att_pdf_area">
-                <div id="summaryContainer"></div>
-                <div id="reportContainer"></div>
-            </div>
-        </div>
-
-        <!-- SETTING TAB -->
-        <div id="att_setting" class="att-tab-content">
-            <div class="card">
-                <div class="card-title">➕ નવો કર્મચારી</div>
-                <label>નામ</label>
-                <input type="text" id="newNameInput" placeholder="નામ લખો...">
-                <button class="btn btn-green" onclick="attAddPerson()">+ એડ કરો</button>
-            </div>
-            <div class="card">
-                <div class="card-title">👥 કર્મચારી લિસ્ટ</div>
-                <div id="pListDisplay" style="color:var(--text-muted); font-size:14px;">લોડ થઈ રહ્યું છે...</div>
-            </div>
-        </div>
+    <div class="controls">
+      <button id="prev" aria-label="પાછળનું ગીત"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+      <button id="play" aria-label="પ્લે"><svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg></button>
+      <button id="next" aria-label="પછીનું ગીત"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5l11 7-11 7z"/></svg></button>
     </div>
+  </div>
+</section>
 
-    <!-- EDIT MODAL -->
-    <div class="modal-overlay" id="attEditModal">
-        <div class="modal-box">
-            <div class="modal-title">✏️ એન્ટ્રી સુધારો</div>
-            <input type="hidden" id="editId">
-            <label>તારીખ</label>
-            <input type="date" id="editDate">
-            <div class="leave-box">
-                <input type="checkbox" id="editIsLeave" onchange="attToggleEditLeaveMode()">
-                <label for="editIsLeave">🏖️ રજા છે?</label>
-                <select id="editLeaveType" style="display:none;">
-                    <option value="Personal">Personal Leave</option>
-                    <option value="Public">Public Holiday</option>
-                </select>
-                <input type="number" id="editLeaveHrs" placeholder="કલાક" style="display:none; width:80px;">
-            </div>
-            <div id="editTimeBox">
-                <label>In Time</label>
-                <input type="time" id="editIn">
-                <label>Out Time</label>
-                <input type="time" id="editOut">
-                <label>બ્રેક (કલાકમાં)</label>
-                <input type="number" id="editBreak" step="0.1" value="0">
-            </div>
-            <div class="modal-actions">
-                <button class="btn btn-green" onclick="attSaveEdit()">✓ સેવ</button>
-                <button class="btn btn-dark" onclick="attCloseEditModal()">✕ રદ</button>
-            </div>
-        </div>
-    </div>
+<!-- 2. ALL SONGS -->
+<section class="tab" id="tab-all">
+  <h2>બધા ગીતો</h2>
+  <div id="permBar"><span id="permMsg"></span><br><button class="sm hl" id="permGo">મંજૂરી આપો</button></div>
+  <div id="count"></div>
+  <ul id="list"></ul>
+</section>
 
-    <!-- BOTTOM NAV -->
-    <div class="att-bottom-nav">
-        <div class="att-nav-item active" onclick="attShowTab('att_entry', this)"><span>📝</span>એન્ટ્રી</div>
-        <div class="att-nav-item" onclick="attShowTab('att_report', this)"><span>📊</span>રિપોર્ટ</div>
-        <div class="att-nav-item" onclick="attShowTab('att_setting', this)"><span>⚙️</span>સેટિંગ</div>
+<!-- 3. UPLOAD -->
+<section class="tab" id="tab-up">
+  <h2>ગીત ઉમેરો</h2>
+  <div class="box">
+    <h3>ફોલ્ડર ઉમેરો</h3>
+    <p id="dirHelp">એક વાર ફોલ્ડરને મંજૂરી આપો. તેમાંના બધા ગીતો અને વીડિયો (અંદરના ફોલ્ડર સહિત) આપોઆપ લિસ્ટમાં આવી જશે અને એક પછી એક વાગશે. વીડિયોનો અવાજ વાગશે, mp3 માં ફેરવવાની જરૂર નથી.</p>
+    <button class="go" id="dirAdd">ફોલ્ડર પસંદ કરો</button>
+    <div id="dirFallback" style="display:none">
+      <p style="margin-top:12px">આ બ્રાઉઝર ફોલ્ડરને કાયમ યાદ રાખી શકતું નથી, એટલે દર વખતે ફોલ્ડર પસંદ કરવું પડશે. પસંદ કરેલા ગીતો આ વખત પૂરતા જ રહેશે.</p>
+      <input type="file" id="dirInput" webkitdirectory multiple style="margin-top:10px">
     </div>
+    <div id="dirList" style="margin-top:12px"></div>
+  </div>
+  <div class="box">
+    <h3>ફાઇલો પસંદ કરો</h3>
+    <p>ફોનમાં રહેલા ગીત કે વીડિયો પસંદ કરો. અપલોડ કરવાની જરૂર નથી, ફાઇલ આ ફોનના બ્રાઉઝરમાં જ સેવ રહેશે. વીડિયો હોય તો તેનો અવાજ ગીતની જેમ વાગશે.</p>
+    <label for="lcFile">ફોનની ફાઇલ</label>
+    <input type="file" id="lcFile" accept="audio/*,video/*,.mp4,.m4a,.mp3,.webm" multiple>
+    <div id="lcStatus" style="font-size:12px;color:var(--muted);margin-top:8px;min-height:18px"></div>
+  </div>
+  <div class="box" hidden>
+    <h3>ફોનમાંથી અપલોડ કરો</h3>
+    <p>ગીત કે વીડિયો (mp4) ફાઇલ પસંદ કરો, એક સાથે ઘણી પણ ચાલે. વીડિયો અપલોડ થયા પછી તેનો અવાજ બેકગ્રાઉન્ડમાં વાગશે. ફાઇલ Firebase Storage માં સેવ થશે.</p>
+    <label for="file">ગીત / વીડિયો ફાઇલ</label>
+    <input type="file" id="file" accept="audio/*,video/*,.mp4,.m4a,.mp3,.webm" multiple>
+    <label for="upTitle">ગીતનું નામ (એક જ ફાઇલ હોય ત્યારે)</label>
+    <input type="text" id="upTitle" placeholder="ખાલી રાખો તો ફાઇલનું નામ વપરાશે">
+    <label for="upArtist">કલાકાર</label>
+    <input type="text" id="upArtist">
+    <button class="go" id="upGo">અપલોડ કરો</button>
+    <div class="prog" id="prog"><div></div></div>
+    <div id="upStatus"></div>
+  </div>
+  <div class="box" hidden>
+    <h3>લિંક થી ઉમેરો</h3>
+    <p>ગીતની સીધી લિંક (URL) હોય તો અહીં ઉમેરો.</p>
+    <label for="lnTitle">ગીતનું નામ</label>
+    <input type="text" id="lnTitle">
+    <label for="lnArtist">કલાકાર</label>
+    <input type="text" id="lnArtist">
+    <label for="lnUrl">લિંક</label>
+    <input type="url" id="lnUrl" placeholder="https://…">
+    <button class="go" id="lnGo">ઉમેરો</button>
+  </div>
+</section>
+
+<div id="mini">
+  <div class="mt" id="miniTitle"></div>
+  <button id="miniPlay" aria-label="પ્લે/પોઝ"><svg viewBox="0 0 24 24" id="miniIcon"><path d="M8 5v14l11-7z"/></svg></button>
 </div>
 
-<script>
-    window.attShowTab = (id, el) => {
-        document.querySelectorAll('.att-tab-content').forEach(t => t.classList.remove('att-active-tab'));
-        document.querySelectorAll('.att-nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(id).classList.add('att-active-tab');
-        el.classList.add('active');
-    };
-</script>
+<nav>
+  <button data-tab="play" class="active"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18 9 9 0 000-18zm-2 12.5v-7l6 3.5z"/></svg>પ્લે</button>
+  <button data-tab="all"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zM4 11h16v2H4zM4 16h10v2H4z"/></svg>બધા ગીતો</button>
+  <button data-tab="up"><svg viewBox="0 0 24 24"><path d="M11 16V7.8l-3 3L6.6 9.4 12 4l5.4 5.4-1.4 1.4-3-3V16zM5 19v-2h14v2z"/></svg>ઉમેરો</button>
+</nav>
+<div id="toast"></div>
+<audio id="audio" preload="metadata" playsinline></audio>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-    import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, set, update } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+import { getStorage, ref as sRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js";
 
-    // Attendance App Firebase (attendance-96700)
-    const attFirebaseConfig = {
-        apiKey: "AIzaSyAuBd2AioQmGZQ_-ZGtkJ6ZHIYh0GqR4E0",
-        authDomain: "attendance-96700.firebaseapp.com",
-        databaseURL: "https://attendance-96700-default-rtdb.firebaseio.com",
-        projectId: "attendance-96700",
-        storageBucket: "attendance-96700.firebasestorage.app",
-        messagingSenderId: "945000495965",
-        appId: "1:945000495965:web:6f4297ce9005b9681846b4"
-    };
+const firebaseConfig = {
+  apiKey: "AIzaSyAuBd2AioQmGZQ_-ZGtkJ6ZHIYh0GqR4E0",
+  authDomain: "attendance-96700.firebaseapp.com",
+  databaseURL: "https://attendance-96700-default-rtdb.firebaseio.com",
+  projectId: "attendance-96700",
+  storageBucket: "attendance-96700.firebasestorage.app",
+  messagingSenderId: "945000495965",
+  appId: "1:945000495965:web:6f4297ce9005b9681846b4"
+};
+const SONGS_PATH = "songs";   // દરેક ગીત: title, artist, url, order
 
-    const attApp = initializeApp(attFirebaseConfig, "attendanceApp");
-    const attDb = getDatabase(attApp);
-    let attPersons = [];
-    let attAttendance = [];
-    let attPersonTimes = {}; // Firebase-stored default times per person key
+const fbApp = initializeApp(firebaseConfig, "musicApp");
+const db = getDatabase(fbApp);
+const storage = getStorage(fbApp);
+const $ = id => document.getElementById(id);
+const audio = $("audio");
+let songs = [], fbSongs = [], localSongs = [], folderSongs = [], sessionSongs = [], dirs = [], idx = -1, failStreak = 0, seeking = false;
 
-    // Init attendance app
-    window.attAppReady = () => {
-        document.getElementById('dailyDate').valueAsDate = new Date();
-        const now = new Date();
-        const curMonth = String(now.getMonth() + 1).padStart(2, '0');
-        const curYear = now.getFullYear();
-        ['reportMonth','masterMonth'].forEach(id => { const el = document.getElementById(id); if(el) el.value = curMonth; });
-        ['reportYear','masterYear'].forEach(id => { const el = document.getElementById(id); if(el) el.value = curYear; });
+$("flange").innerHTML = [0,60,120,180,240,300].map(a => `<i style="--a:${a}"></i>`).join("");
+const ICON_PLAY = '<path d="M8 5v14l11-7z"/>', ICON_PAUSE = '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';
 
-        // Set default in/out as 08:00/19:30 until a person is selected
-        document.getElementById('dailyIn').value = '08:00';
-        document.getElementById('dailyOut').value = '19:30';
-    };
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2800); }
+const fmt = s => isFinite(s) ? Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2,"0") : "0:00";
 
-    // Load this person's default time into Entry tab
-    window.attLoadPersonDefaultTime = (name) => {
-        const person = attPersons.find(p => p.name === name);
-        if (!person) return;
-        const times = attPersonTimes[person.key] || {};
-        const defIn  = times.defIn  || '08:00';
-        const defOut = times.defOut || '19:30';
-        document.getElementById('dailyIn').value  = defIn;
-        document.getElementById('dailyOut').value = defOut;
-    };
+/* ---------- Tabs ---------- */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.id === "tab-" + name));
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
+  updateMini(name);
+}
+function updateMini(tab = document.querySelector("nav button.active").dataset.tab) {
+  $("mini").classList.toggle("show", tab !== "play" && idx >= 0);
+}
 
-    // Load this person's default time into Bulk Entry tab
-    window.attLoadBulkDefaultTime = (name) => {
-        const person = attPersons.find(p => p.name === name);
-        if (!person) return;
-        const times = attPersonTimes[person.key] || {};
-        const defIn  = times.defIn  || '08:00';
-        const defOut = times.defOut || '19:30';
-        document.getElementById('bulkIn').value  = defIn;
-        document.getElementById('bulkOut').value = defOut;
-    };
+/* ---------- Songs data ---------- */
+function normalize(data) {
+  if (!data) return [];
+  const arr = Object.entries(data).map(([key, v], pos) => {
+    if (typeof v === "string") return { key, pos, order: null, title: decodeURIComponent(v.split("/").pop().split("?")[0]).replace(/\.[^.]+$/, "") || "ગીત", artist: "", url: v };
+    return { key, pos, order: typeof v.order === "number" ? v.order : null, title: v.title || v.name || v.song || "ગીત", artist: v.artist || v.singer || "", url: v.url || v.link || v.src || "", storagePath: v.storagePath || null };
+  }).filter(s => s.url);
+  return arr.sort((a, b) => (a.order ?? 1e9 + a.pos) - (b.order ?? 1e9 + b.pos));
+}
 
-    onValue(ref(attDb, 'persons'), (snap) => {
-        const d = snap.val();
-        attPersons = d ? Object.entries(d).map(([key, name]) => ({ key, name })) : [];
-        attUpdateLists();
-        attRenderSettingList();
+function renderList() {
+  $("count").textContent = songs.length ? `કુલ ${songs.length} ગીતો · ▲▼ થી ક્રમ બદલો` : "";
+  if (!songs.length) { $("list").innerHTML = `<div class="empty">હજી કોઈ ગીત નથી.<br>“ઉમેરો” માંથી ફોલ્ડર પસંદ કરો.</div>`; return; }
+  $("list").innerHTML = songs.map((s, i) => `
+    <li data-i="${i}" class="${i === idx ? "cur" : ""}">
+      <div class="main"><span class="n">${i+1}</span><div class="t"><b></b><span></span></div></div>
+      <div class="mv">
+        <button data-mv="-1" aria-label="ઉપર" ${i === 0 || songs[i].folder || songs[i-1].grp !== songs[i].grp ? "disabled" : ""}><svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5z"/></svg></button>
+        <button data-mv="1" aria-label="નીચે" ${i === songs.length-1 || songs[i].folder || songs[i+1].grp !== songs[i].grp ? "disabled" : ""}><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></button>
+        ${songs[i].local ? '<button data-del="1" aria-label="કાઢી નાખો"><svg viewBox="0 0 24 24"><path d="M6.4 5L5 6.4 10.6 12 5 17.6 6.4 19l5.6-5.6 5.6 5.6 1.4-1.4-5.6-5.6L19 6.4 17.6 5 12 10.6z"/></svg></button>' : ""}
+      </div>
+    </li>`).join("");
+  [...$("list").children].forEach((li, i) => { li.querySelector("b").textContent = songs[i].title; li.querySelector(".t span").textContent = songs[i].local ? "ફોનમાં સેવ" : songs[i].artist; });
+}
+
+$("list").onclick = e => {
+  const li = e.target.closest("li[data-i]"); if (!li) return;
+  const i = +li.dataset.i, mv = e.target.closest("[data-mv]");
+  if (e.target.closest("[data-del]")) return delLocal(i);
+  if (mv) return move(i, +mv.dataset.mv);
+  load(i); toast("▶ " + songs[i].title);
+};
+
+async function move(i, d) {
+  const j = i + d; if (j < 0 || j >= songs.length) return;
+  if (songs[i].local) return moveLocal(i, d);
+  const arr = fbSongs.slice(); [arr[i], arr[j]] = [arr[j], arr[i]];
+  const updates = {};
+  arr.forEach((s, n) => updates[s.key] = { title: s.title, artist: s.artist, url: s.url, order: n, storagePath: s.storagePath || null });
+  try { await update(ref(db, SONGS_PATH), updates); }
+  catch (e) { console.error(e); toast("ક્રમ સેવ ન થયો. Database Rules તપાસો."); }
+}
+
+/* ---------- Player ---------- */
+function load(i, autoplay = true) {
+  if (!songs.length) return;
+  const prevSong = songs[idx];
+  idx = (i + songs.length) % songs.length;
+  const s = songs[idx];
+  if (prevSong && prevSong !== s && prevSong.handle && prevSong.url) { URL.revokeObjectURL(prevSong.url); prevSong.url = null; }
+  $("title").textContent = s.title; $("artist").textContent = s.artist; $("miniTitle").textContent = s.title;
+  $("seek").value = 0; $("seek").style.setProperty("--p", "0%"); $("cur").textContent = "0:00"; $("dur").textContent = "0:00";
+  [...$("list").children].forEach((li, n) => li.classList && li.classList.toggle("cur", n === idx));
+  updateMini();
+  if ("mediaSession" in navigator) navigator.mediaSession.metadata = new MediaMetadata({ title: s.title, artist: s.artist || "Drishti Music" });
+  const start = () => { audio.src = s.url; if (autoplay) audio.play().catch(() => {}); };
+  if (s.handle && !s.url) {
+    audio.pause();
+    s.handle.getFile().then(f => {
+      s.url = URL.createObjectURL(f);
+      if (songs[idx] === s) start(); else { URL.revokeObjectURL(s.url); s.url = null; }
+    }).catch(() => {
+      if (songs[idx] !== s) return;
+      if (++failStreak >= songs.length) { failStreak = 0; return toast("ફાઇલો ખુલતી નથી. મંજૂરી તપાસો."); }
+      toast("ફાઇલ ખુલી નહીં, આગળ વધ્યા"); setTimeout(next, 300);
     });
+  } else start();
+}
+const next = () => load(idx + 1);
+const prev = () => (audio.currentTime > 3 ? (audio.currentTime = 0) : load(idx - 1));
+function toggle() { if (idx < 0) return load(0); audio.paused ? audio.play().catch(() => {}) : audio.pause(); }
+$("play").onclick = toggle; $("miniPlay").onclick = toggle; $("next").onclick = next; $("prev").onclick = prev;
 
-    onValue(ref(attDb, 'personTimes'), (snap) => {
-        attPersonTimes = snap.val() || {};
-        attRenderSettingList();
-    });
+audio.addEventListener("ended", next);
+audio.addEventListener("error", () => {
+  if (!audio.getAttribute("src")) return;
+  failStreak++;
+  if (failStreak >= songs.length) { toast("ગીતો ચાલતા નથી. લિંક તપાસો."); failStreak = 0; return; }
+  toast("આ ગીત ચાલ્યું નહીં, આગળ વધ્યા"); next();
+});
+audio.addEventListener("playing", () => failStreak = 0);
+audio.addEventListener("play", () => { $("playIcon").innerHTML = ICON_PAUSE; $("miniIcon").innerHTML = ICON_PAUSE; $("flange").classList.add("on"); $("play").setAttribute("aria-label","પોઝ"); });
+audio.addEventListener("pause", () => { $("playIcon").innerHTML = ICON_PLAY; $("miniIcon").innerHTML = ICON_PLAY; $("flange").classList.remove("on"); $("play").setAttribute("aria-label","પ્લે"); });
+audio.addEventListener("loadedmetadata", () => $("dur").textContent = fmt(audio.duration));
+audio.addEventListener("timeupdate", () => {
+  if (seeking || !audio.duration) return;
+  const p = audio.currentTime / audio.duration * 100;
+  $("seek").value = p; $("seek").style.setProperty("--p", p + "%"); $("cur").textContent = fmt(audio.currentTime);
+});
+$("seek").addEventListener("input", e => { seeking = true; e.target.style.setProperty("--p", e.target.value + "%"); $("cur").textContent = fmt(e.target.value / 100 * audio.duration); });
+$("seek").addEventListener("change", e => { if (audio.duration) audio.currentTime = e.target.value / 100 * audio.duration; seeking = false; });
 
-    onValue(ref(attDb, 'attendance'), (snap) => {
-        const d = snap.val();
-        attAttendance = d ? Object.entries(d).map(([id, val]) => ({ id, ...val })) : [];
-    });
+if ("mediaSession" in navigator) {
+  const ms = navigator.mediaSession;
+  ms.setActionHandler("play", () => audio.play()); ms.setActionHandler("pause", () => audio.pause());
+  ms.setActionHandler("previoustrack", prev); ms.setActionHandler("nexttrack", next);
+  ms.setActionHandler("seekto", d => { audio.currentTime = d.seekTime; });
+}
 
-    window.attChangeDate = (days) => {
-        const dInput = document.getElementById('dailyDate');
-        let d = new Date(dInput.value);
-        d.setDate(d.getDate() + days);
-        dInput.valueAsDate = d;
-    };
+/* ---------- Upload ---------- */
+const nextOrder = () => Math.max(fbSongs.length - 1, ...fbSongs.map(s => s.order ?? -1)) + 1;
+const cleanName = n => n.replace(/\.[^.]+$/, "").replace(/[_]+/g, " ").trim();
 
-    window.attAddPerson = () => {
-        const name = document.getElementById('newNameInput').value.trim();
-        if (name) { push(ref(attDb, 'persons'), name); document.getElementById('newNameInput').value = ""; alert("નામ ઉમેરાઈ ગયું!"); }
-    };
-
-    window.attDeletePerson = (key) => {
-        if (confirm("શું તમે આ નામ કાઢી નાખવા માંગો છો?")) remove(ref(attDb, `persons/${key}`));
-    };
-
-    function attRenderSettingList() {
-        const container = document.getElementById('pListDisplay');
-        let html = "";
-        attPersons.forEach(p => {
-            const times = attPersonTimes[p.key] || {};
-            const savedIn  = times.defIn  || '08:00';
-            const savedOut = times.defOut || '19:30';
-            html += `<div style="padding:12px 0; border-bottom:1px solid var(--border);">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:14px; font-weight:600; color:var(--text);">👤 ${p.name}</span>
-                    <button class="btn-del" onclick="attDeletePerson('${p.key}')">✕ કાઢો</button>
-                </div>
-                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:110px;">
-                        <div style="font-size:10px; color:var(--text-muted); letter-spacing:1px; margin-bottom:3px;">IN TIME</div>
-                        <input type="time" value="${savedIn}"
-                            style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px;"
-                            onchange="attSavePersonTime('${p.key}', 'in', this.value)">
-                    </div>
-                    <div style="flex:1; min-width:110px;">
-                        <div style="font-size:10px; color:var(--text-muted); letter-spacing:1px; margin-bottom:3px;">OUT TIME</div>
-                        <input type="time" value="${savedOut}"
-                            style="width:100%; padding:8px 10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px;"
-                            onchange="attSavePersonTime('${p.key}', 'out', this.value)">
-                    </div>
-                </div>
-            </div>`;
-        });
-        container.innerHTML = html || "<span style='color:var(--text-muted)'>કોઈ નામ નથી.</span>";
+$("upGo").onclick = async () => {
+  const files = [...$("file").files];
+  if (!files.length) return toast("પહેલા ફાઇલ પસંદ કરો");
+  const artist = $("upArtist").value.trim(), single = files.length === 1 ? $("upTitle").value.trim() : "";
+  $("upGo").disabled = true; $("prog").style.display = "block";
+  let done = 0;
+  try {
+    for (const f of files) {
+      const path = `songs/${Date.now()}_${f.name.replace(/[^\w.\-]+/g, "_")}`;
+      const task = uploadBytesResumable(sRef(storage, path), f, { contentType: f.type || (/\.(mp4|m4v)$/i.test(f.name) ? "video/mp4" : "audio/mpeg") });
+      await new Promise((res, rej) => task.on("state_changed", s => {
+        const p = s.bytesTransferred / s.totalBytes * 100;
+        $("prog").firstElementChild.style.width = p + "%";
+        $("upStatus").textContent = `${done + 1}/${files.length} · ${f.name} · ${Math.round(p)}%`;
+      }, rej, res));
+      const url = await getDownloadURL(task.snapshot.ref);
+      await set(push(ref(db, SONGS_PATH)), { title: single || cleanName(f.name), artist, url, order: nextOrder() + done, storagePath: path });
+      done++;
     }
+    $("upStatus").textContent = `✓ ${done} ગીત ઉમેરાઈ ગયા`;
+    $("file").value = ""; $("upTitle").value = "";
+  } catch (e) {
+    console.error(e);
+    const code = e.code || "", msg = String(e.message || e);
+    let why = "બીજી કોઈ ખામી છે.";
+    if (code === "storage/unauthorized") why = "Storage Rules માં લખવાની છૂટ નથી.";
+    else if (/bucket-not-found|project-not-found|unknown|object-not-found/.test(code)) why = "Firebase Storage ચાલુ કરેલું નથી (અથવા બકેટ મળતી નથી).";
+    else if (/retry-limit|network/.test(code) || !navigator.onLine) why = "ઇન્ટરનેટ કનેક્શન તપાસો.";
+    else if (/PERMISSION_DENIED/i.test(msg)) why = "ફાઇલ અપલોડ થઈ, પણ Database Rules માં songs માં લખવાની છૂટ નથી.";
+    $("upStatus").textContent = "અપલોડ ન થયું: " + why + " [" + (code || msg).slice(0, 80) + "]";
+  }
+  $("upGo").disabled = false;
+  setTimeout(() => { $("prog").style.display = "none"; $("prog").firstElementChild.style.width = "0"; }, 1500);
+};
 
-    window.attSavePersonTime = (key, type, value) => {
-        // Save to Firebase so it persists permanently across devices and sessions
-        const updateObj = {};
-        updateObj[type === 'in' ? 'defIn' : 'defOut'] = value;
-        update(ref(attDb, `personTimes/${key}`), updateObj);
-    };
+$("lnGo").onclick = async () => {
+  const title = $("lnTitle").value.trim(), url = $("lnUrl").value.trim();
+  if (!title || !url) return toast("નામ અને લિંક બંને ભરો");
+  try {
+    await set(push(ref(db, SONGS_PATH)), { title, artist: $("lnArtist").value.trim(), url, order: nextOrder() });
+    $("lnTitle").value = $("lnArtist").value = $("lnUrl").value = ""; toast("✓ ગીત ઉમેરાઈ ગયું");
+  } catch (e) { console.error(e); toast("ગીત સેવ ન થયું. Database Rules તપાસો."); }
+};
 
-    window.attToggleLeaveMode = () => {
-        const isL = document.getElementById('isLeave').checked;
-        document.getElementById('dailyTimeBox').style.display = isL ? 'none' : 'block';
-        document.getElementById('leaveType').style.display = isL ? 'inline-block' : 'none';
-        document.getElementById('leaveHrs').style.display = isL ? 'inline-block' : 'none';
-    };
+/* ---------- Phone storage (IndexedDB) ---------- */
+const idbReady = new Promise(res => {
+  try {
+    const r = indexedDB.open("drishtiMusic", 2);
+    r.onupgradeneeded = () => { const d = r.result; for (const n of ["local", "dirs"]) if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: "id" }); };
+    r.onsuccess = () => res(r.result); r.onerror = () => res(null);
+  } catch { res(null); }
+});
+const idbOp = async (mode, fn, store = "local") => {
+  const d = await idbReady; if (!d) return null;
+  return new Promise(res => {
+    try {
+      const tx = d.transaction(store, mode), rq = fn(tx.objectStore(store));
+      tx.oncomplete = () => res(rq ? rq.result : true); tx.onerror = tx.onabort = () => res(null);
+    } catch { res(null); }
+  });
+};
+const toLocal = r => ({ key: "L" + r.id, id: r.id, local: true, grp: 1, order: r.order, title: r.title, artist: "", url: URL.createObjectURL(r.blob), rec: r });
 
-    function attCheckDuplicate(name, date) {
-        return attAttendance.some(a => a.name === name && a.date === date);
-    }
+function rebuild() {
+  const curKey = songs[idx]?.key;
+  songs = [...fbSongs, ...localSongs, ...folderSongs, ...sessionSongs];
+  idx = curKey ? songs.findIndex(s => s.key === curKey) : -1;
+  renderList();
+  if (!songs.length) $("title").textContent = "કોઈ ગીત નથી";
+  else if (idx < 0 && audio.paused) load(0, false);
+  updateMini();
+}
 
-    function attCalcHours(i, o) {
-        if (!i || !o || i === "--" || o === "--") return 0;
-        let [h1, m1] = i.split(':').map(Number);
-        let [h2, m2] = o.split(':').map(Number);
-        let d = (h2 * 60 + m2) - (h1 * 60 + m1);
-        if (d < 0) d += 1440;
-        return (d / 60);
-    }
+$("lcFile").onchange = async () => {
+  const files = [...$("lcFile").files]; if (!files.length) return;
+  let saved = true, firstKey = null;
+  for (const f of files) {
+    const rec = { id: Date.now() + "_" + Math.random().toString(36).slice(2, 6), title: cleanName(f.name), order: Math.max(-1, ...localSongs.map(s => s.order)) + 1, blob: f };
+    if (!(await idbOp("readwrite", st => st.put(rec)))) saved = false;
+    const ls = toLocal(rec); localSongs.push(ls); firstKey = firstKey || ls.key;
+  }
+  $("lcFile").value = "";
+  rebuild();
+  $("lcStatus").textContent = saved ? `✓ ${files.length} ફાઇલ ઉમેરાઈ. “બધા ગીતો” માં જુઓ.` : "ઉમેરાઈ, પણ બ્રાઉઝર સેવ કરી શકતું નથી. પેજ રિફ્રેશ કરતા જતી રહેશે.";
+  if (audio.paused) load(songs.findIndex(s => s.key === firstKey));
+};
 
-    window.attSaveDaily = async () => {
-        const date = document.getElementById('dailyDate').value;
-        const name = document.getElementById('dailyName').value;
-        if (!name || !date) return alert("નામ અને તારીખ પસંદ કરો!");
-        if (attCheckDuplicate(name, date)) return alert("Error: આ તારીખની એન્ટ્રી પહેલેથી થયેલી છે!");
+async function moveLocal(i, d) {
+  const a = songs[i], b = songs[i + d];
+  [a.order, b.order] = [b.order, a.order]; a.rec.order = a.order; b.rec.order = b.order;
+  await idbOp("readwrite", st => { st.put(a.rec); return st.put(b.rec); });
+  localSongs.sort((x, y) => x.order - y.order); rebuild();
+}
 
-        const isL = document.getElementById('isLeave').checked;
-        const bHrs = parseFloat(document.getElementById('dailyBreak').value || 0);
-        const rem = document.getElementById('dailyRemark').value.trim();
+async function delLocal(i) {
+  const s = songs[i];
+  if (!confirm("આ ગીત ફોનમાંથી કાઢી નાખવું?")) return;
+  if (i === idx) { audio.pause(); audio.removeAttribute("src"); audio.load(); }
+  URL.revokeObjectURL(s.url);
+  await idbOp("readwrite", st => st.delete(s.id));
+  localSongs = localSongs.filter(x => x !== s); rebuild();
+}
 
-        let tin = "--", tout = "--", hrs = 0, lType = "";
-        if (!isL) {
-            tin = document.getElementById('dailyIn').value;
-            tout = document.getElementById('dailyOut').value;
-            hrs = (attCalcHours(tin, tout) - bHrs).toFixed(1);
-        } else {
-            lType = document.getElementById('leaveType').value;
-            hrs = parseFloat(document.getElementById('leaveHrs').value || 0);
-        }
+idbOp("readonly", st => st.getAll()).then(rows => {
+  localSongs = (rows || []).sort((a, b) => a.order - b.order).map(toLocal);
+  rebuild();
+});
 
-        const id = push(ref(attDb, 'attendance')).key;
-        await set(ref(attDb, `attendance/${id}`), { name, date, tin, tout, breakHrs: bHrs, hours: hrs, item: rem, leaveType: lType });
-        alert("✓ સેવ થયું!");
-        document.getElementById('dailyRemark').value = "";
-    };
+/* ---------- Folders on the phone ---------- */
+const EXT = /\.(mp3|m4a|aac|wav|ogg|opus|flac|mp4|m4v|webm|3gp)$/i;
+const HAS_DIR_API = "showDirectoryPicker" in window;
+if (!HAS_DIR_API) { $("dirAdd").style.display = "none"; $("dirFallback").style.display = "block"; }
 
-    window.attSaveBulk = async () => {
-        const name = document.getElementById('bulkName').value;
-        const from = document.getElementById('bulkFrom').value;
-        const to = document.getElementById('bulkTo').value;
-        if (!name || !from || !to) return alert("નામ અને તારીખ રેન્જ ભરો!");
+async function scanDir(handle, prefix = "") {
+  const out = [];
+  for await (const [name, h] of handle.entries()) {
+    if (name.startsWith(".")) continue;
+    if (h.kind === "file") { if (EXT.test(name)) out.push({ handle: h, path: prefix + name }); }
+    else out.push(...await scanDir(h, prefix + name + "/"));
+  }
+  return out;
+}
 
-        let start = new Date(from);
-        let end = new Date(to);
-        let count = 0;
+async function refreshFolders() {
+  const all = [];
+  for (const d of dirs) {
+    let perm = "prompt";
+    try { perm = await d.handle.queryPermission({ mode: "read" }); } catch {}
+    d.perm = perm; d.files = [];
+    if (perm === "granted") { try { d.files = await scanDir(d.handle); } catch { d.perm = "prompt"; } }
+    d.files.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+    d.files.forEach(f => all.push({ key: "F" + d.id + "/" + f.path, folder: true, grp: 2, handle: f.handle, url: null, title: cleanName(f.path.split("/").pop()), artist: d.name }));
+  }
+  folderSongs = all;
+  renderDirs(); rebuild();
+}
 
-        while (start <= end) {
-            let dStr = start.toISOString().split('T')[0];
-            if (!attCheckDuplicate(name, dStr)) {
-                let tin = document.getElementById('bulkIn').value;
-                let tout = document.getElementById('bulkOut').value;
-                let bHrs = parseFloat(document.getElementById('bulkBreak').value || 0);
-                let hrs = (attCalcHours(tin, tout) - bHrs).toFixed(1);
-                const id = push(ref(attDb, 'attendance')).key;
-                await set(ref(attDb, `attendance/${id}`), { name, date: dStr, tin, tout, breakHrs: bHrs, hours: hrs, item: "", leaveType: "" });
-                count++;
-            }
-            start.setDate(start.getDate() + 1);
-        }
-        alert(count + " નવી એન્ટ્રી સેવ થઈ!");
-    };
+function renderDirs() {
+  $("dirList").innerHTML = dirs.map(d => `
+    <div class="dir" data-id="${d.id}">
+      <div class="dn"><b></b><span>${d.perm === "granted" ? d.files.length + " ગીત/વીડિયો" : "ફરી મંજૂરી જોઈએ"}</span></div>
+      ${d.perm === "granted" ? '<button class="sm" data-act="scan">ફરી સ્કેન</button>' : '<button class="sm hl" data-act="grant">મંજૂરી</button>'}
+      <button class="sm" data-act="rm">કાઢો</button>
+    </div>`).join("");
+  [...$("dirList").children].forEach((el, i) => el.querySelector("b").textContent = dirs[i].name);
+  const need = dirs.filter(d => d.perm !== "granted").length;
+  $("permBar").classList.toggle("show", need > 0);
+  $("permMsg").textContent = need ? "ફોલ્ડરના ગીતો વગાડવા માટે એક વાર ફરી મંજૂરી આપો." : "";
+}
 
-    // Helper: compute date range from month+year+AB (A=1-15, B=16-end)
-    function attGetDateRange(month, year, ab) {
-        const y = parseInt(year);
-        const m = String(parseInt(month)).padStart(2, '0');
-        if (ab === 'A') {
-            return { from: `${y}-${m}-01`, to: `${y}-${m}-15` };
-        } else {
-            const lastDay = new Date(y, parseInt(month), 0).getDate();
-            return { from: `${y}-${m}-16`, to: `${y}-${m}-${String(lastDay).padStart(2, '0')}` };
-        }
-    }
+async function grantAll() {
+  for (const d of dirs.filter(x => x.perm !== "granted")) {
+    try { await d.handle.requestPermission({ mode: "read" }); } catch {}
+  }
+  await refreshFolders();
+}
+$("permGo").onclick = grantAll;
 
-    window.attShowReport = () => {
-        const sel = document.getElementById('reportName').value;
+$("dirList").onclick = async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const d = dirs.find(x => x.id === b.closest(".dir").dataset.id);
+  if (b.dataset.act === "grant") { try { await d.handle.requestPermission({ mode: "read" }); } catch {} await refreshFolders(); }
+  else if (b.dataset.act === "scan") { toast("સ્કેન થઈ રહ્યું છે…"); await refreshFolders(); toast("✓ સ્કેન પૂરું"); }
+  else if (b.dataset.act === "rm") {
+    if (!confirm("આ ફોલ્ડર લિસ્ટમાંથી કાઢવું? ફોનમાંથી ફાઇલ ડીલીટ નહીં થાય.")) return;
+    await idbOp("readwrite", st => st.delete(d.id), "dirs");
+    dirs = dirs.filter(x => x !== d); await refreshFolders();
+  }
+};
 
-        // Compute report date range from Month+Year+AB selectors
-        const rMonth = document.getElementById('reportMonth').value;
-        const rYear = document.getElementById('reportYear').value;
-        const rAB = document.getElementById('reportAB').value;
-        const { from, to } = attGetDateRange(rMonth, rYear, rAB);
-        document.getElementById('reportFrom').value = from;
-        document.getElementById('reportTo').value = to;
+$("dirAdd").onclick = async () => {
+  try {
+    const h = await window.showDirectoryPicker({ mode: "read" });
+    for (const d of dirs) if (await d.handle.isSameEntry(h)) return toast("આ ફોલ્ડર પહેલેથી ઉમેરેલું છે");
+    const rec = { id: Date.now() + "", name: h.name, handle: h };
+    await idbOp("readwrite", st => st.put(rec), "dirs");
+    dirs.push(rec); toast("સ્કેન થઈ રહ્યું છે…");
+    await refreshFolders();
+    const added = folderSongs.filter(f => f.key.startsWith("F" + rec.id + "/"));
+    toast(added.length ? `✓ ${added.length} ગીત/વીડિયો મળ્યા` : "આ ફોલ્ડરમાં કોઈ ગીત મળ્યું નહીં");
+    if (added.length && audio.paused) load(songs.indexOf(added[0]));
+  } catch (e) { if (e.name !== "AbortError") { console.error(e); toast("ફોલ્ડર ખુલ્યું નહીં"); } }
+};
 
-        // Compute master date range — full month (A + B both)
-        const mMonth = document.getElementById('masterMonth').value;
-        const mYear = document.getElementById('masterYear').value;
-        const mY = parseInt(mYear);
-        const mM = String(parseInt(mMonth)).padStart(2, '0');
-        const mLastDay = new Date(mY, parseInt(mMonth), 0).getDate();
-        const mFrom = `${mY}-${mM}-01`;
-        const mTo = `${mY}-${mM}-${String(mLastDay).padStart(2, '0')}`;
-        document.getElementById('masterFrom').value = mFrom;
-        document.getElementById('masterTo').value = mTo;
+$("dirInput").onchange = () => {
+  const files = [...$("dirInput").files].filter(f => EXT.test(f.name) || /^(audio|video)\//.test(f.type));
+  files.sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric: true }));
+  sessionSongs.forEach(x => URL.revokeObjectURL(x.url));
+  sessionSongs = files.map(f => ({ key: "S" + (f.webkitRelativePath || f.name), folder: true, grp: 3, url: URL.createObjectURL(f), title: cleanName(f.name), artist: (f.webkitRelativePath || "").split("/")[0] }));
+  $("dirInput").value = ""; rebuild();
+  toast(sessionSongs.length ? `✓ ${sessionSongs.length} ગીત/વીડિયો મળ્યા` : "કોઈ ગીત મળ્યું નહીં");
+  if (sessionSongs.length && audio.paused) load(songs.indexOf(sessionSongs[0]));
+};
 
-        document.getElementById('summaryContainer').innerHTML = "";
-        document.getElementById('reportContainer').innerHTML = "";
-        const missingAlertEl = document.getElementById('attMissingAlert');
-        missingAlertEl.innerHTML = ""; missingAlertEl.style.display = "none";
-        if (!sel) return;
+idbOp("readonly", st => st.getAll(), "dirs").then(rows => { dirs = rows || []; refreshFolders(); });
 
-        // ---- Missing-entry gap detection ----
-        // Look only BETWEEN each employee's first and last recorded date in the selected range
-        // (dates after the last entry just mean attendance hasn't been filled yet — not a gap).
-        // Any date inside that span with no entry at all (no work, no leave, nothing) is a real gap.
-        const attDateRange = (df, dt) => {
-            const arr = []; let cur = new Date(df + 'T00:00:00'); const end = new Date(dt + 'T00:00:00');
-            while (cur <= end) { arr.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1); }
-            return arr;
-        };
-        const attComputeMissingDates = (data) => {
-            const datesSet = new Set(data.map(a => a.date));
-            const sortedDates = [...datesSet].sort();
-            if (sortedDates.length < 2) return [];
-            return attDateRange(sortedDates[0], sortedDates[sortedDates.length - 1]).filter(dt => !datesSet.has(dt));
-        };
-        const attFmtD = (d) => d.split('-').reverse().join('/');
-
-        let names = (sel === "ALL") ? attPersons.map(p => p.name) : [sel];
-        let nData = []; let mData = []; let gapRows = "";
-
-        names.forEach(n => {
-            const data = attAttendance.filter(a => a.name === n && (!from || a.date >= from) && (!to || a.date <= to)).sort((a, b) => new Date(a.date) - new Date(b.date));
-            if (data.length > 0) {
-                let s = attCalcStats(data);
-                nData.push({ name: n, ...s });
-                attRenderDetailTable(n, data, s);
-                const missing = attComputeMissingDates(data);
-                if (missing.length) gapRows += `<div style="margin-bottom:6px;"><strong>${n}:</strong> ${missing.map(attFmtD).join(', ')}</div>`;
-            }
-            if (mFrom && mTo) {
-                const mD = attAttendance.filter(a => a.name === n && (a.date >= mFrom && a.date <= mTo));
-                if (mD.length > 0) mData.push({ name: n, ...attCalcStats(mD) });
-            }
-        });
-        if (gapRows) {
-            missingAlertEl.innerHTML = `<div class="card" style="border-left:4px solid #e74c3c; background:#fff5f5;">
-                <div style="font-weight:700; color:#e74c3c; letter-spacing:0.5px;">⚠️ Missing Entries (gaps within recorded dates)</div>
-                <div style="margin-top:8px; font-size:13px; color:#555;">${gapRows}</div>
-            </div>`;
-            missingAlertEl.style.display = "block";
-        }
-        attRenderCombinedSummary(nData, mData);
-    };
-
-    function attCalcStats(data) {
-        let hrs = 0, pL = 0, hL = 0, wD = 0;
-        data.forEach(a => {
-            hrs += parseFloat(a.hours || 0);
-            if (a.leaveType === "Personal") pL++;
-            else if (a.leaveType === "Public" || a.item?.includes("Sunday")) hL++;
-            else wD++;
-        });
-        return { hrs: hrs.toFixed(1), pL, hL, wD, totalL: (pL + hL) };
-    }
-
-    function attRenderCombinedSummary(nData, mData) {
-        let h = `<div style="margin-bottom:20px;">
-            <h2 style="text-align:center; font-family:'Rajdhani',sans-serif; color:#1a2744; letter-spacing:1.5px; margin-bottom:12px;">OPERATOR SUMMARY</h2>
-            <table><thead><tr>
-                <th style="text-align:left;">Name</th>
-                <th>Hrs</th><th>Work Days</th><th>P.L</th><th>H.L</th><th>Total Leave</th>
-            </tr></thead><tbody>`;
-        nData.forEach(s => {
-            h += `<tr>
-                <td style="text-align:left; font-weight:600;">${s.name}</td>
-                <td><b>${s.hrs}</b></td><td>${s.wD}</td>
-                <td>${s.pL}</td>
-                <td>${s.hL}</td>
-                <td><b>${s.totalL}</b></td>
-            </tr>`;
-        });
-        h += `</tbody></table>`;
-        if (mData.length > 0) {
-            const mMonthEl = document.getElementById('masterMonth');
-            const mYearEl = document.getElementById('masterYear');
-            const mLabel = mMonthEl ? mMonthEl.options[mMonthEl.selectedIndex].text + ' ' + (mYearEl ? mYearEl.value : '') + ' (A + B)' : '';
-            h += `<h2 style="margin-top:20px; text-align:center; font-family:'Rajdhani',sans-serif; color:#1a56db; letter-spacing:1.5px; margin-bottom:12px;">MASTER SUMMARY · ${mLabel}</h2>
-                <table><thead><tr>
-                    <th style="text-align:left;">Name</th>
-                    <th>Hrs</th><th>Work Days</th>
-                    <th>P.L</th><th>H.L</th><th>Total Leave</th>
-                </tr></thead><tbody>`;
-            mData.forEach(s => {
-                h += `<tr>
-                    <td style="text-align:left; font-weight:600;">${s.name}</td>
-                    <td><b>${s.hrs}</b></td><td>${s.wD}</td>
-                    <td>${s.pL}</td>
-                    <td>${s.hL}</td>
-                    <td><b>${s.totalL}</b></td>
-                </tr>`;
-            });
-            h += `</tbody></table>`;
-        }
-        document.getElementById('summaryContainer').innerHTML = h;
-    }
-
-    function attRenderDetailTable(name, data, stats) {
-        let h = `<div class="att-report-block">
-            <h3>${name}
-                <span style="font-size:12px; color:var(--text-muted); font-weight:400; margin-left:8px;">
-                    Total: ${stats.hrs} hrs | Work: ${stats.wD} | P.L: ${stats.pL} | H.L: ${stats.hL}
-                </span>
-            </h3>
-            <table><thead><tr>
-                <th>Date</th><th>Remark</th><th>In</th><th>Out</th><th>Break</th><th>Net Hrs</th>
-                <th class="att-del-col" style="width:70px;">✕/✏️</th>
-            </tr></thead><tbody>`;
-
-        data.forEach(a => {
-            const dateStr = a.date.split('-').reverse().join('/');
-            const isLeave = a.leaveType && a.leaveType !== "";
-            const leaveLabel = a.leaveType === "Personal" ? "Personal Leave" : a.leaveType === "Public" ? "Public Holiday" : "";
-            const remarkDisplay = isLeave
-                ? `<span style="color:${a.leaveType === "Personal" ? "#1a56db" : "#64748b"}; font-weight:bold;">${leaveLabel}</span>${a.item ? ' · ' + a.item : ''}`
-                : (a.item || '');
-            const rowStyle = isLeave ? `background:${a.leaveType === "Personal" ? "rgba(26,86,219,0.06)" : "rgba(100,116,139,0.08)"};` : "";
-
-            h += `<tr style="${rowStyle}">
-                <td style="font-weight:600;">${dateStr}</td>
-                <td style="text-align:left;">${remarkDisplay}</td>
-                <td>${a.tin}</td><td>${a.tout}</td>
-                <td>${a.breakHrs || 0}</td>
-                <td><b style="color:#1a2744;">${a.hours}</b></td>
-                <td class="att-del-col">
-                    <button class="btn-edit" onclick="attEditEntry('${a.id}')">✏️</button>
-                    <button class="btn-del" onclick="attDeleteEntry('${a.id}')">✕</button>
-                </td>
-            </tr>`;
-        });
-        h += `</tbody></table></div>`;
-        document.getElementById('reportContainer').innerHTML += h;
-    }
-
-    // Helper: get date range from month+year+AB
-    function getDateRangeFromAB(month, year, ab) {
-        const y = parseInt(year);
-        const m = String(parseInt(month)).padStart(2, '0');
-        if (ab === 'A') {
-            return { from: `${y}-${m}-01`, to: `${y}-${m}-15` };
-        } else {
-            const lastDay = new Date(y, parseInt(month), 0).getDate();
-            return { from: `${y}-${m}-16`, to: `${y}-${m}-${lastDay}` };
-        }
-    }
-
-    window.attDownloadPDF = () => {
-        const from = document.getElementById('reportFrom').value;
-        const to   = document.getElementById('reportTo').value;
-        const sel  = document.getElementById('reportName').value;
-        if (!from || !to || !sel) return alert("પહેલાં રિપોર્ટ load કરો.");
-
-        // Period label
-        const rMonthEl  = document.getElementById('reportMonth');
-        const rABEl     = document.getElementById('reportAB');
-        const rYear     = document.getElementById('reportYear').value;
-        const monthName = rMonthEl ? rMonthEl.options[rMonthEl.selectedIndex].text : from;
-        const abLabel   = rABEl ? rABEl.value : '';
-        const periodLabel = `${monthName} ${rYear} - ${abLabel}`;
-
-        // Master selected?
-        const mFrom = document.getElementById('masterFrom').value;
-        const mTo   = document.getElementById('masterTo').value;
-        const masterSelected = mFrom && mTo;
-
-        // Build content from rendered att_pdf_area — clone so we can strip buttons
-        const areaEl = document.getElementById('att_pdf_area');
-        const clone  = areaEl.cloneNode(true);
-
-        // Remove edit/delete buttons columns
-        clone.querySelectorAll('.att-del-col, [onclick*="attEditEntry"], [onclick*="attDeleteEntry"]').forEach(el => el.remove());
-        // Remove last th (✕/✏️) and last td in each row
-        clone.querySelectorAll('table').forEach(tbl => {
-            tbl.querySelectorAll('thead tr').forEach(tr => {
-                const lastTh = tr.querySelector('th:last-child');
-                if (lastTh && (lastTh.textContent.includes('✕') || lastTh.textContent.includes('✏'))) lastTh.remove();
-            });
-            tbl.querySelectorAll('tbody tr').forEach(tr => {
-                const lastTd = tr.querySelector('td:last-child');
-                if (lastTd && lastTd.querySelectorAll('button').length > 0) lastTd.remove();
-            });
-        });
-
-        // If master NOT selected, remove master summary section from clone
-        if (!masterSelected) {
-            const masterH2 = clone.querySelector('h2[style*="1a56db"], h2[style*="MASTER"]');
-            if (masterH2) {
-                let el = masterH2;
-                while (el && el.tagName !== 'TABLE') { const nx = el.nextElementSibling; el.remove(); el = nx; }
-                if (el && el.tagName === 'TABLE') el.remove();
-            }
-        }
-
-        // Fix rgba backgrounds for print
-        clone.querySelectorAll('tr[style]').forEach(tr => {
-            const bg = tr.style.background || tr.style.backgroundColor;
-            if (bg && bg.includes('rgba')) {
-                tr.style.background = bg.includes('26,86,219') ? '#eef3fd' : '#f1f3f6';
-            }
-        });
-
-        const today = new Date();
-        const genDate = `${String(today.getDate()).padStart(2,'0')}/${String(today.getMonth()+1).padStart(2,'0')}/${today.getFullYear()}`;
-        const masterMonthEl = document.getElementById('masterMonth');
-        const masterYearEl  = document.getElementById('masterYear');
-        const leaveBreakLabel = masterSelected && masterMonthEl
-            ? `${masterMonthEl.options[masterMonthEl.selectedIndex].text} ${masterYearEl ? masterYearEl.value : ''} - ${abLabel}`
-            : periodLabel;
-
-        const element = document.createElement('div');
-        element.style.cssText = "font-family: 'Segoe UI', Arial, sans-serif; color: #232323; background: white; width: 100%;";
-        element.innerHTML = `
-            <div style="padding:0 0 10px; margin-bottom:12px;">
-                <h1 style="margin:0; font-size:19px; color:#191919; letter-spacing:0.4px; font-family:'Segoe UI', Arial, sans-serif; font-weight:700;">DRISHTI FLANGES &amp; METAL</h1>
-                <p style="margin:3px 0 8px; color:#828282; font-size:10.5px;">Employee Attendance Report</p>
-                <div style="border-top:1px solid #dedede; margin:0 0 8px;"></div>
-                <p style="margin:0; font-size:9.5px; line-height:1.6;">
-                    <span style="color:#9b9b9b; font-weight:700;">PERIOD&nbsp;&nbsp;</span><span style="color:#373737; font-weight:400;">${periodLabel}</span>
-                    <span style="color:#cccccc;">&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
-                    <span style="color:#9b9b9b; font-weight:700;">LEAVE/BREAK&nbsp;&nbsp;</span><span style="color:#373737; font-weight:400;">${leaveBreakLabel}</span>
-                    <span style="color:#cccccc;">&nbsp;&nbsp;&#8226;&nbsp;&nbsp;</span>
-                    <span style="color:#9b9b9b; font-weight:700;">GENERATED&nbsp;&nbsp;</span><span style="color:#373737; font-weight:400;">${genDate}</span>
-                </p>
-            </div>
-            <style>
-                * { box-sizing: border-box; }
-                table { width:100%; border-collapse:collapse; margin:6px 0 14px; font-size:11px; table-layout:fixed; font-family:'Segoe UI', Arial, sans-serif; }
-                th { background:#ececec; color:#282828; padding:9px 6px; text-align:center; border:1px solid #d2d2d2; font-size:10.5px; letter-spacing:0.3px; font-weight:700; }
-                td { border:1px solid #e1e1e1; padding:8px 6px; text-align:center; color:#232323; font-size:11px; word-break:break-word; }
-                td:nth-child(2) { text-align:left; }
-                th:nth-child(2) { text-align:left; }
-                .att-report-block { page-break-before:always; padding:14px 0 4px; border-top:1px solid #e6e6e6; margin-top:10px; }
-                .att-report-block::before { content:"DRISHTI FLANGES AND METAL"; display:block; font-family:'Segoe UI', Arial, sans-serif; font-size:15px; font-weight:700; color:#191919; letter-spacing:0.3px; padding-bottom:6px; margin-bottom:10px; border-bottom:1px solid #dedede; }
-                .att-report-block h3 { font-size:13px; color:#1a202c; margin-bottom:10px; font-family:'Segoe UI', Arial, sans-serif; font-weight:700; }
-                .att-report-block h3 span { font-size:10.5px; color:#828282; font-weight:400; margin-left:8px; }
-                h2 { font-size:13px; text-align:center; margin:14px 0 8px; letter-spacing:0.4px; color:#191919; font-weight:700; }
-                tbody tr:nth-child(even) { background: #fafafa; }
-                .summary-page { margin-bottom:12px; }
-            </style>
-        ` + clone.innerHTML;
-
-        const opt = {
-            margin:     [8, 6, 12, 6],
-            filename:   `Attendance_${abLabel}_${monthName}_${rYear}.pdf`,
-            html2canvas: { scale: 2.5, useCORS: true, logging: false },
-            jsPDF:      { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).toPdf().get('pdf').then((pdf) => {
-            const totalPages = pdf.internal.getNumberOfPages();
-            const w = pdf.internal.pageSize.getWidth();
-            const h = pdf.internal.pageSize.getHeight();
-            for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i);
-                pdf.setDrawColor(230, 230, 230);
-                pdf.setLineWidth(0.2);
-                pdf.line(6, h - 10, w - 6, h - 10);
-                pdf.setFont('helvetica', 'normal');
-                pdf.setFontSize(7.5);
-                pdf.setTextColor(140, 140, 140);
-                pdf.text('DRISHTI FLANGES AND METAL', 6, h - 6);
-                pdf.text(`Page ${i} of ${totalPages}`, w - 6, h - 6, { align: 'right' });
-            }
-        }).save();
-    };
-
-    window.attDeleteEntry = (id) => {
-        if (confirm("ખરેખર ડીલીટ કરવું છે?")) {
-            remove(ref(attDb, `attendance/${id}`));
-            alert("ડીલીટ થઈ ગયું!");
-            attShowReport();
-        }
-    };
-
-    window.attToggleEditLeaveMode = () => {
-        const isL = document.getElementById('editIsLeave').checked;
-        document.getElementById('editTimeBox').style.display = isL ? 'none' : 'block';
-        document.getElementById('editLeaveType').style.display = isL ? 'inline-block' : 'none';
-        document.getElementById('editLeaveHrs').style.display = isL ? 'inline-block' : 'none';
-    };
-
-    window.attEditEntry = (id) => {
-        const entry = attAttendance.find(a => a.id === id);
-        if (!entry) return;
-        const isLeave = !!(entry.leaveType && entry.leaveType !== "");
-        document.getElementById('editId').value = id;
-        document.getElementById('editDate').value = entry.date;
-        document.getElementById('editIsLeave').checked = isLeave;
-        document.getElementById('editLeaveType').value = entry.leaveType || 'Personal';
-        document.getElementById('editLeaveHrs').value = isLeave ? (entry.hours || '') : '';
-        document.getElementById('editIn').value = entry.tin !== '--' ? entry.tin : '';
-        document.getElementById('editOut').value = entry.tout !== '--' ? entry.tout : '';
-        document.getElementById('editBreak').value = entry.breakHrs || 0;
-        attToggleEditLeaveMode();
-        document.getElementById('attEditModal').classList.add('open');
-    };
-
-    window.attSaveEdit = async () => {
-        const id = document.getElementById('editId').value;
-        const date = document.getElementById('editDate').value;
-        if (!date) return alert("તારીખ ભરો!");
-
-        const isL = document.getElementById('editIsLeave').checked;
-        let tin = "--", tout = "--", bHrs = 0, hrs = 0, lType = "";
-
-        if (isL) {
-            lType = document.getElementById('editLeaveType').value;
-            hrs = parseFloat(document.getElementById('editLeaveHrs').value || 0);
-        } else {
-            tin = document.getElementById('editIn').value || '--';
-            tout = document.getElementById('editOut').value || '--';
-            bHrs = parseFloat(document.getElementById('editBreak').value || 0);
-            hrs = (tin !== '--' && tout !== '--') ? (attCalcHours(tin, tout) - bHrs).toFixed(1) : 0;
-        }
-
-        await update(ref(attDb, `attendance/${id}`), { date, tin, tout, breakHrs: bHrs, hours: hrs, leaveType: lType });
-        document.getElementById('attEditModal').classList.remove('open');
-        alert("✓ સુધારો સેવ થઈ ગયો!");
-        attShowReport();
-    };
-
-    window.attCloseEditModal = () => {
-        document.getElementById('attEditModal').classList.remove('open');
-    };
-
-    window.attUpdateLists = () => {
-        document.querySelectorAll('.att-name-list').forEach(l => {
-            let opt = "<option value=''>-- નામ પસંદ કરો --</option>";
-            if (l.id === "reportName") opt += "<option value='ALL'>⊞ All Employees</option>";
-            attPersons.forEach(p => opt += `<option value="${p.name}">${p.name}</option>`);
-            l.innerHTML = opt;
-        });
-    };
-
-    // Auto-init on page load
-    window.attAppReady();
+/* ---------- Firebase (online) — હમણાં બંધ, પછી ચાલુ કરવા true કરો ---------- */
+const ONLINE = false;
+if (ONLINE) onValue(ref(db, SONGS_PATH), snap => {
+  fbSongs = normalize(snap.val());
+  rebuild();
+}, err => {
+  console.error(err);
+  fbSongs = []; rebuild();
+  toast("Firebase ના ગીતો મળ્યા નહીં. ઇન્ટરનેટ અથવા Rules તપાસો.");
+});
 </script>
-
 </body>
 </html>
